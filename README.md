@@ -1,4 +1,4 @@
-# Rental Car MVP (Rabat Agdal)
+# Rental Car MVP 
 
 A modular monolith car rental application built with **React, Express, Prisma, and PostgreSQL**.
 
