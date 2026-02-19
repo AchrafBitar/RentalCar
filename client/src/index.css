@@ -1,13 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-display: 'Playfair Display', serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
-  --color-brand-gold: #d4af37;
-  --color-brand-dark: #0f172a;
+  --color-brand-gold: #dc2626;
+  --color-brand-dark: #18181b;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
