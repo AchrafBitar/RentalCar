@@ -21,21 +21,25 @@ model Car {
   model       String
   image       String?
   pricePerDay Float
-  availability Boolean   @default(true)
+  availability Boolean  @default(true)
+  status      String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE
+  version     Int      @default(1) // Optimistic locking field
   companyId   Int
-  company     Company   @relation(fields: [companyId], references: [id])
+  company     Company  @relation(fields: [companyId], references: [id])
   bookings    Booking[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Booking {
-  id        Int      @id @default(autoincrement())
-  startDate DateTime
-  endDate   DateTime
-  status    String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
-  carId     Int
-  car       Car      @relation(fields: [carId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  startDate     DateTime
+  endDate       DateTime
+  status        String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  customerName  String   @default("")
+  customerPhone String   @default("")
+  carId         Int
+  car           Car      @relation(fields: [carId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, User, ArrowLeft } from 'lucide-react';
+import { Calendar, User, Phone, ArrowLeft, AlertTriangle } from 'lucide-react';
+
+const API_BASE = 'http://localhost:3000/api';
 
 const BookingPage = () => {
     const { carId } = useParams();
@@ -8,20 +10,44 @@ const BookingPage = () => {
     const [formData, setFormData] = useState({
         startDate: '',
         endDate: '',
-        name: '',
+        customerName: '',
+        customerPhone: '',
     });
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState(null);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitting(true);
+        setError(null);
 
-        // Simulate booking process
-        setTimeout(() => {
-            setSubmitting(false);
+        try {
+            const res = await fetch(`${API_BASE}/bookings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    carId: parseInt(carId),
+                    startDate: formData.startDate,
+                    endDate: formData.endDate,
+                    customerName: formData.customerName,
+                    customerPhone: formData.customerPhone,
+                }),
+            });
+
+            const json = await res.json();
+
+            if (!res.ok) {
+                setError(json.message || 'Une erreur est survenue.');
+                return;
+            }
+
             alert('Demande de réservation envoyée avec succès !');
             navigate('/cars');
-        }, 1500);
+        } catch (err) {
+            setError('Erreur réseau. Veuillez vérifier votre connexion et réessayer.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -53,30 +79,33 @@ const BookingPage = () => {
 
                     {/* Form Side */}
                     <div className="md:w-1/2 p-12 bg-white">
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-6 flex items-start gap-2 text-sm">
+                                <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                                <span>{error}</span>
+                            </div>
+                        )}
+
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
                                 <label className="block text-zinc-700 text-sm font-bold mb-2 ml-1 uppercase tracking-wider">Date de début</label>
-                                <div className="relative">
-                                    <input
-                                        type="date"
-                                        required
-                                        className="w-full pl-4 pr-4 py-3 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400"
-                                        value={formData.startDate}
-                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                    />
-                                </div>
+                                <input
+                                    type="date"
+                                    required
+                                    className="w-full pl-4 pr-4 py-3 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400"
+                                    value={formData.startDate}
+                                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                />
                             </div>
                             <div>
                                 <label className="block text-zinc-700 text-sm font-bold mb-2 ml-1 uppercase tracking-wider">Date de fin</label>
-                                <div className="relative">
-                                    <input
-                                        type="date"
-                                        required
-                                        className="w-full pl-4 pr-4 py-3 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400"
-                                        value={formData.endDate}
-                                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                    />
-                                </div>
+                                <input
+                                    type="date"
+                                    required
+                                    className="w-full pl-4 pr-4 py-3 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400"
+                                    value={formData.endDate}
+                                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                />
                             </div>
 
                             <div>
@@ -88,8 +117,23 @@ const BookingPage = () => {
                                         placeholder="Votre nom"
                                         required
                                         className="w-full pl-12 pr-4 py-3 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        value={formData.customerName}
+                                        onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-zinc-700 text-sm font-bold mb-2 ml-1 uppercase tracking-wider">Téléphone (WhatsApp)</label>
+                                <div className="relative">
+                                    <Phone className="absolute left-4 top-3.5 text-zinc-400" size={18} />
+                                    <input
+                                        type="tel"
+                                        placeholder="+212 6XX XXX XXX"
+                                        required
+                                        className="w-full pl-12 pr-4 py-3 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400"
+                                        value={formData.customerPhone}
+                                        onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                                     />
                                 </div>
                             </div>
