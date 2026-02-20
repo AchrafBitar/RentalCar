@@ -1,4 +1,4 @@
-# Rental Car MVP 
+# Rental Car MVP (Rabat Agdal)
 
 A modular monolith car rental application built with **React, Express, Prisma, and PostgreSQL**.
 
@@ -19,7 +19,7 @@ The application follows a clean, "production-ready" modular monolith architectur
     -   `components/`: Reusable UI components (Navbar, etc.).
     -   `pages/`: Route components (Home, CarList, Booking).
 -   **Tech:** React, Vite, Tailwind CSS (v4).
--   **Design:** Modern, responsive, and inviting UI with generic "premium" aesthetics.
+-   **Design:** Modern, responsive, and inviting UI.
 
 ## Prerequisites
 -   Node.js (v18+)
@@ -43,7 +43,7 @@ npm run dev
 ```
 
 ## Features
--   **Landing Page:** Captivating hero section with brand slogan.
+-   **Landing Page:** Hero section.
 -   **Car Listing:** Browse available cars with pricing.
 -   **Booking:** Simple booking form for selected cars.
 -   **API:** RESTful API for cars and booking management.
