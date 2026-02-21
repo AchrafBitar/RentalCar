@@ -19,4 +19,9 @@ router.patch('/bookings/:id/confirm', (req, res) => adminController.confirmBooki
 router.patch('/bookings/:id/cancel', (req, res) => adminController.cancelBooking(req, res));
 router.delete('/bookings/:id', (req, res) => adminController.deleteBooking(req, res));
 
+// ─── Blocked Dates ───────────────────────────────────────────────────
+router.get('/cars/:id/blocked-dates', (req, res) => adminController.getBlockedDates(req, res));
+router.post('/cars/:id/blocked-dates', (req, res) => adminController.createBlockedDate(req, res));
+router.delete('/blocked-dates/:id', (req, res) => adminController.deleteBlockedDate(req, res));
+
 module.exports = router;

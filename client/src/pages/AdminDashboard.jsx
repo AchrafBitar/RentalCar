@@ -4,7 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import {
     Car, Wrench, CheckCircle, XCircle, RefreshCw, AlertTriangle,
-    Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search
+    Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:3000/api';
@@ -67,6 +67,13 @@ const AdminDashboard = () => {
     const [bookingModal, setBookingModal] = useState(false);
     const [bookingForm, setBookingForm] = useState({ carId: '', startDate: '', endDate: '', customerName: '', customerPhone: '', status: 'PENDING' });
     const [bookingSaving, setBookingSaving] = useState(false);
+
+    // Blocked dates modal state
+    const [blockedModal, setBlockedModal] = useState({ open: false, carId: null, carName: '' });
+    const [blockedDates, setBlockedDates] = useState([]);
+    const [blockedForm, setBlockedForm] = useState({ startDate: '', endDate: '', reason: '' });
+    const [blockedSaving, setBlockedSaving] = useState(false);
+    const [blockedLoading, setBlockedLoading] = useState(false);
 
     // Search states
     const [carSearch, setCarSearch] = useState('');
@@ -145,6 +152,48 @@ const AdminDashboard = () => {
             await fetchAll();
         } catch { alert('Erreur réseau.'); }
         finally { setTogglingId(null); }
+    };
+
+    // ─── Blocked Dates Handlers ────────────────────────────────
+    const openBlockedModal = async (car) => {
+        setBlockedModal({ open: true, carId: car.id, carName: car.model });
+        setBlockedForm({ startDate: '', endDate: '', reason: '' });
+        setBlockedLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/cars/${car.id}/blocked-dates`);
+            const json = await res.json();
+            setBlockedDates(json.data || []);
+        } catch { setBlockedDates([]); }
+        finally { setBlockedLoading(false); }
+    };
+
+    const saveBlockedDate = async () => {
+        setBlockedSaving(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/cars/${blockedModal.carId}/blocked-dates`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(blockedForm),
+            });
+            const json = await res.json();
+            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            setBlockedForm({ startDate: '', endDate: '', reason: '' });
+            // Refresh list
+            const res2 = await fetch(`${API_BASE}/admin/cars/${blockedModal.carId}/blocked-dates`);
+            const json2 = await res2.json();
+            setBlockedDates(json2.data || []);
+        } catch { alert('Erreur réseau.'); }
+        finally { setBlockedSaving(false); }
+    };
+
+    const deleteBlockedDate = async (id) => {
+        if (!confirm('Supprimer cette période bloquée ?')) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin/blocked-dates/${id}`, { method: 'DELETE' });
+            const json = await res.json();
+            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            setBlockedDates(prev => prev.filter(d => d.id !== id));
+        } catch { alert('Erreur réseau.'); }
     };
 
     // ─── Booking Handlers ──────────────────────────────────────
@@ -432,6 +481,13 @@ const AdminDashboard = () => {
                                                         <Pencil size={16} />
                                                     </button>
                                                     <button
+                                                        onClick={() => openBlockedModal(car)}
+                                                        className="p-1.5 rounded text-zinc-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                                                        title="Bloquer des dates"
+                                                    >
+                                                        <Ban size={16} />
+                                                    </button>
+                                                    <button
                                                         onClick={() => deleteCar(car.id)}
                                                         className="p-1.5 rounded text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                                                         title="Supprimer"
@@ -706,6 +762,96 @@ const AdminDashboard = () => {
                         >
                             {bookingSaving ? 'Enregistrement...' : 'Ajouter'}
                         </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {/* MODAL: Blocked Dates Management                            */}
+            {/* ═══════════════════════════════════════════════════════════ */}
+            <Modal
+                open={blockedModal.open}
+                onClose={() => setBlockedModal({ open: false, carId: null, carName: '' })}
+                title={`Dates bloquées — ${blockedModal.carName}`}
+            >
+                <div className="space-y-4">
+                    {/* Existing blocked dates */}
+                    <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2">Périodes bloquées</h4>
+                        {blockedLoading ? (
+                            <p className="text-sm text-zinc-400">Chargement...</p>
+                        ) : blockedDates.length === 0 ? (
+                            <p className="text-sm text-zinc-400 italic">Aucune période bloquée.</p>
+                        ) : (
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                                {blockedDates.map(bd => (
+                                    <div key={bd.id} className="flex items-center justify-between bg-zinc-50 border border-zinc-200 px-3 py-2">
+                                        <div>
+                                            <span className="text-sm font-medium text-zinc-800">
+                                                {new Date(bd.startDate).toLocaleDateString('fr-FR')} → {new Date(bd.endDate).toLocaleDateString('fr-FR')}
+                                            </span>
+                                            {bd.reason && <span className="text-xs text-zinc-400 ml-2">({bd.reason})</span>}
+                                        </div>
+                                        <button
+                                            onClick={() => deleteBlockedDate(bd.id)}
+                                            className="text-zinc-400 hover:text-red-600 transition-colors"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Add new blocked date */}
+                    <div className="border-t border-zinc-100 pt-4">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2">Ajouter une période</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs text-zinc-500 mb-1">Début *</label>
+                                <input
+                                    type="date"
+                                    value={blockedForm.startDate}
+                                    onChange={e => setBlockedForm({ ...blockedForm, startDate: e.target.value })}
+                                    className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-zinc-500 mb-1">Fin *</label>
+                                <input
+                                    type="date"
+                                    value={blockedForm.endDate}
+                                    onChange={e => setBlockedForm({ ...blockedForm, endDate: e.target.value })}
+                                    className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-3">
+                            <label className="block text-xs text-zinc-500 mb-1">Raison (optionnel)</label>
+                            <input
+                                type="text"
+                                value={blockedForm.reason}
+                                onChange={e => setBlockedForm({ ...blockedForm, reason: e.target.value })}
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500"
+                                placeholder="Ex: Entretien préventif"
+                            />
+                        </div>
+                        <div className="flex justify-end gap-3 mt-4">
+                            <button
+                                onClick={() => setBlockedModal({ open: false, carId: null, carName: '' })}
+                                className="px-4 py-2 text-sm font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-700 transition-colors"
+                            >
+                                Fermer
+                            </button>
+                            <button
+                                onClick={saveBlockedDate}
+                                disabled={blockedSaving || !blockedForm.startDate || !blockedForm.endDate}
+                                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {blockedSaving ? 'Enregistrement...' : 'Bloquer'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </Modal>

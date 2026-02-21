@@ -59,6 +59,19 @@ class BookingRepository {
                 throw new Error('DATE_CONFLICT');
             }
 
+            // 3b. Check for overlapping blocked dates
+            const blockedOverlap = await tx.blockedDate.findFirst({
+                where: {
+                    carId: parseInt(data.carId),
+                    startDate: { lt: new Date(data.endDate) },
+                    endDate: { gt: new Date(data.startDate) },
+                },
+            });
+
+            if (blockedOverlap) {
+                throw new Error('DATE_CONFLICT');
+            }
+
             // 4. Increment the car version (optimistic lock check)
             const updatedCar = await tx.car.update({
                 where: {

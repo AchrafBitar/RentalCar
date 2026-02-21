@@ -31,6 +31,27 @@ class CarRepository {
     }
 
     /**
+     * Fetch a car by ID with non-cancelled bookings and blocked dates.
+     */
+    async findByIdWithAvailability(id) {
+        return await prisma.car.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                company: true,
+                bookings: {
+                    where: { status: { not: 'CANCELLED' } },
+                    select: { id: true, startDate: true, endDate: true, status: true },
+                    orderBy: { startDate: 'asc' },
+                },
+                blockedDates: {
+                    select: { id: true, startDate: true, endDate: true, reason: true },
+                    orderBy: { startDate: 'asc' },
+                },
+            },
+        });
+    }
+
+    /**
      * Fetch all cars with their bookings — for admin calendar.
      */
     async findAllWithBookings() {
@@ -90,6 +111,7 @@ class CarRepository {
     async delete(id) {
         return await prisma.$transaction(async (tx) => {
             await tx.booking.deleteMany({ where: { carId: parseInt(id) } });
+            await tx.blockedDate.deleteMany({ where: { carId: parseInt(id) } });
             return await tx.car.delete({
                 where: { id: parseInt(id) },
             });

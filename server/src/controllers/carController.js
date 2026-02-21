@@ -22,6 +22,19 @@ class CarController {
             }
         }
     }
+
+    async getCarAvailability(req, res) {
+        try {
+            const data = await carService.getCarAvailability(req.params.id);
+            res.json(data);
+        } catch (error) {
+            if (error.message === 'Car not found') {
+                res.status(404).json({ error: error.message });
+            } else {
+                res.status(500).json({ error: error.message });
+            }
+        }
+    }
 }
 
 module.exports = new CarController();

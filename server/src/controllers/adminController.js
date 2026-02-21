@@ -1,6 +1,8 @@
 const adminService = require('../services/adminService');
 const carService = require('../services/carService');
 const bookingService = require('../services/bookingService');
+const blockedDateRepository = require('../repositories/blockedDateRepository');
+const carRepository = require('../repositories/carRepository');
 
 /**
  * Admin Controller
@@ -183,6 +185,59 @@ class AdminController {
                 return res.status(404).json({ success: false, error: 'BOOKING_NOT_FOUND', message: 'Réservation introuvable.' });
             }
             console.error('[AdminController] Delete booking error:', error);
+            res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: 'Erreur lors de la suppression.' });
+        }
+    }
+
+    // ─── Blocked Dates ────────────────────────────────────────────────────
+    async getBlockedDates(req, res) {
+        try {
+            const dates = await blockedDateRepository.findByCar(req.params.id);
+            res.json({ success: true, data: dates });
+        } catch (error) {
+            console.error('[AdminController] Get blocked dates error:', error);
+            res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: 'Erreur lors du chargement des dates bloquées.' });
+        }
+    }
+
+    async createBlockedDate(req, res) {
+        try {
+            const { startDate, endDate, reason } = req.body;
+            const carId = req.params.id;
+
+            if (!startDate || !endDate) {
+                return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'startDate et endDate sont requis.' });
+            }
+
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
+                return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'Dates invalides.' });
+            }
+
+            const car = await carRepository.findById(carId);
+            if (!car) {
+                return res.status(404).json({ success: false, error: 'CAR_NOT_FOUND', message: 'Véhicule introuvable.' });
+            }
+
+            const blocked = await blockedDateRepository.create({ carId, startDate, endDate, reason: reason || '' });
+            res.status(201).json({ success: true, data: blocked, message: 'Période bloquée ajoutée.' });
+        } catch (error) {
+            console.error('[AdminController] Create blocked date error:', error);
+            res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: 'Erreur lors du blocage des dates.' });
+        }
+    }
+
+    async deleteBlockedDate(req, res) {
+        try {
+            const blocked = await blockedDateRepository.findById(req.params.id);
+            if (!blocked) {
+                return res.status(404).json({ success: false, error: 'NOT_FOUND', message: 'Période bloquée introuvable.' });
+            }
+            await blockedDateRepository.delete(req.params.id);
+            res.json({ success: true, message: 'Période bloquée supprimée.' });
+        } catch (error) {
+            console.error('[AdminController] Delete blocked date error:', error);
             res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: 'Erreur lors de la suppression.' });
         }
     }
