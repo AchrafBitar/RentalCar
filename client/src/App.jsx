@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import CarList from './pages/CarList';
 import BookingPage from './pages/BookingPage';
+import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import DocumentUpload from './pages/DocumentUpload';
 
@@ -16,6 +17,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/cars" element={<CarList />} />
             <Route path="/book/:carId" element={<BookingPage />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/upload-docs/:reservationId" element={<DocumentUpload />} />
           </Routes>

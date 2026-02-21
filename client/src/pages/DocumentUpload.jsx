@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Upload, FileText, CreditCard, CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 
+const API_BASE = 'http://localhost:3000/api';
+
 /**
- * DocumentUpload — Boilerplate page for uploading Permis de Conduire & CIN.
+ * DocumentUpload — Page for uploading Permis de Conduire & CIN.
  * Accessed via a unique link sent in the WhatsApp confirmation message.
- * UI-only: no real upload backend is connected yet.
+ * Files are uploaded to the server via multipart/form-data.
  */
 const DocumentUpload = () => {
     const { reservationId } = useParams();
@@ -19,12 +21,21 @@ const DocumentUpload = () => {
         cin: null,
     });
     const [submitted, setSubmitted] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState(null);
 
     const handleFileChange = (type, event) => {
         const file = event.target.files[0];
         if (!file) return;
 
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setError('Le fichier est trop volumineux. Taille maximale : 5 MB.');
+            return;
+        }
+
         setFiles(prev => ({ ...prev, [type]: file }));
+        setError(null);
 
         // Generate preview for images
         if (file.type.startsWith('image/')) {
@@ -38,14 +49,40 @@ const DocumentUpload = () => {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!files.permis || !files.cin) {
-            alert('Veuillez sélectionner les deux documents avant de soumettre.');
+            setError('Veuillez sélectionner les deux documents avant de soumettre.');
             return;
         }
-        // Simulate submission (boilerplate — no backend upload yet)
-        setSubmitted(true);
+
+        setUploading(true);
+        setError(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('permis', files.permis);
+            formData.append('cin', files.cin);
+
+            const res = await fetch(`${API_BASE}/uploads/${reservationId}`, {
+                method: 'POST',
+                body: formData,
+                // No Content-Type header — browser sets multipart boundary automatically
+            });
+
+            const json = await res.json();
+
+            if (!res.ok) {
+                setError(json.message || 'Erreur lors du téléchargement.');
+                return;
+            }
+
+            setSubmitted(true);
+        } catch (err) {
+            setError('Erreur réseau. Vérifiez votre connexion et réessayez.');
+        } finally {
+            setUploading(false);
+        }
     };
 
     if (submitted) {
@@ -99,6 +136,14 @@ const DocumentUpload = () => {
                     </div>
                 </div>
 
+                {/* Error */}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-6 flex items-start gap-2 text-sm">
+                        <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                        <span>{error}</span>
+                    </div>
+                )}
+
                 {/* Upload Form */}
                 <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -113,8 +158,8 @@ const DocumentUpload = () => {
 
                         <label className="block cursor-pointer">
                             <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${files.permis
-                                    ? 'border-emerald-300 bg-emerald-50/50'
-                                    : 'border-zinc-300 hover:border-red-400 hover:bg-red-50/30'
+                                ? 'border-emerald-300 bg-emerald-50/50'
+                                : 'border-zinc-300 hover:border-red-400 hover:bg-red-50/30'
                                 }`}>
                                 {previews.permis ? (
                                     <img src={previews.permis} alt="Permis preview" className="max-h-40 mx-auto mb-3 rounded shadow-sm" />
@@ -148,8 +193,8 @@ const DocumentUpload = () => {
 
                         <label className="block cursor-pointer">
                             <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${files.cin
-                                    ? 'border-emerald-300 bg-emerald-50/50'
-                                    : 'border-zinc-300 hover:border-red-400 hover:bg-red-50/30'
+                                ? 'border-emerald-300 bg-emerald-50/50'
+                                : 'border-zinc-300 hover:border-red-400 hover:bg-red-50/30'
                                 }`}>
                                 {previews.cin ? (
                                     <img src={previews.cin} alt="CIN preview" className="max-h-40 mx-auto mb-3 rounded shadow-sm" />
@@ -175,12 +220,21 @@ const DocumentUpload = () => {
                     {/* Submit */}
                     <button
                         type="submit"
-                        disabled={!files.permis || !files.cin}
-                        className={`w-full bg-zinc-950 text-white font-bold py-4 shadow-lg hover:bg-red-600 hover:shadow-red-600/30 transition-all duration-300 skew-x-[-5deg] ${(!files.permis || !files.cin) ? 'opacity-50 cursor-not-allowed' : ''
+                        disabled={!files.permis || !files.cin || uploading}
+                        className={`w-full bg-zinc-950 text-white font-bold py-4 shadow-lg hover:bg-red-600 hover:shadow-red-600/30 transition-all duration-300 skew-x-[-5deg] ${(!files.permis || !files.cin || uploading) ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                     >
                         <span className="skew-x-[5deg] flex items-center justify-center gap-2">
-                            <Upload size={18} /> Soumettre les Documents
+                            {uploading ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                    Envoi en cours...
+                                </>
+                            ) : (
+                                <>
+                                    <Upload size={18} /> Soumettre les Documents
+                                </>
+                            )}
                         </span>
                     </button>
                 </form>

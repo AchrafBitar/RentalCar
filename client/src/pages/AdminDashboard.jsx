@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import {
     Car, Wrench, CheckCircle, XCircle, RefreshCw, AlertTriangle,
-    Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban
+    Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban, LogOut
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:3000/api';
@@ -49,6 +50,7 @@ const StatusBadge = ({ status }) => {
 // Main Admin Dashboard
 // ────────────────────────────────────────────────────────────
 const AdminDashboard = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('calendar');
     const [events, setEvents] = useState([]);
     const [cars, setCars] = useState([]);
@@ -57,6 +59,26 @@ const AdminDashboard = () => {
     const [error, setError] = useState(null);
     const [togglingId, setTogglingId] = useState(null);
     const calendarRef = useRef(null);
+
+    // ─── Auth Helpers ───────────────────────────────────────────
+    const getToken = () => localStorage.getItem('admin_token');
+    const authHeaders = () => ({
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`,
+    });
+    const handleUnauthorized = () => {
+        localStorage.removeItem('admin_token');
+        navigate('/admin/login');
+    };
+    const logout = () => {
+        localStorage.removeItem('admin_token');
+        navigate('/admin/login');
+    };
+
+    // Redirect to login if no token
+    useEffect(() => {
+        if (!getToken()) navigate('/admin/login');
+    }, []);
 
     // Car modal state
     const [carModal, setCarModal] = useState({ open: false, mode: 'add', car: null });
@@ -83,11 +105,15 @@ const AdminDashboard = () => {
     const fetchAll = async () => {
         try {
             setError(null);
+            const headers = { 'Authorization': `Bearer ${getToken()}` };
             const [calRes, carsRes, bookingsRes] = await Promise.all([
-                fetch(`${API_BASE}/admin/calendar`),
-                fetch(`${API_BASE}/admin/cars`),
-                fetch(`${API_BASE}/admin/bookings`),
+                fetch(`${API_BASE}/admin/calendar`, { headers }),
+                fetch(`${API_BASE}/admin/cars`, { headers }),
+                fetch(`${API_BASE}/admin/bookings`, { headers }),
             ]);
+            if (calRes.status === 401 || carsRes.status === 401 || bookingsRes.status === 401) {
+                handleUnauthorized(); return;
+            }
             if (!calRes.ok || !carsRes.ok || !bookingsRes.ok) throw new Error('Erreur lors du chargement.');
             const [calJson, carsJson, bookingsJson] = await Promise.all([calRes.json(), carsRes.json(), bookingsRes.json()]);
             setEvents(calJson.data.events);
@@ -101,7 +127,7 @@ const AdminDashboard = () => {
         }
     };
 
-    useEffect(() => { fetchAll(); }, []);
+    useEffect(() => { if (getToken()) fetchAll(); }, []);
 
     // ─── Car Handlers ──────────────────────────────────────────
     const openCarModal = (mode, car = null) => {
@@ -122,9 +148,10 @@ const AdminDashboard = () => {
             const method = carModal.mode === 'edit' ? 'PUT' : 'POST';
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders(),
                 body: JSON.stringify(carForm),
             });
+            if (res.status === 401) { handleUnauthorized(); return; }
             const json = await res.json();
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             setCarModal({ open: false, mode: 'add', car: null });
@@ -136,7 +163,8 @@ const AdminDashboard = () => {
     const deleteCar = async (id) => {
         if (!confirm('Supprimer ce véhicule et toutes ses réservations ?')) return;
         try {
-            const res = await fetch(`${API_BASE}/admin/cars/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE}/admin/cars/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
+            if (res.status === 401) { handleUnauthorized(); return; }
             const json = await res.json();
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             await fetchAll();
@@ -146,7 +174,8 @@ const AdminDashboard = () => {
     const toggleMaintenance = async (carId) => {
         setTogglingId(carId);
         try {
-            const res = await fetch(`${API_BASE}/admin/cars/${carId}/maintenance`, { method: 'PUT' });
+            const res = await fetch(`${API_BASE}/admin/cars/${carId}/maintenance`, { method: 'PUT', headers: { 'Authorization': `Bearer ${getToken()}` } });
+            if (res.status === 401) { handleUnauthorized(); return; }
             const json = await res.json();
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             await fetchAll();
@@ -160,7 +189,7 @@ const AdminDashboard = () => {
         setBlockedForm({ startDate: '', endDate: '', reason: '' });
         setBlockedLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/cars/${car.id}/blocked-dates`);
+            const res = await fetch(`${API_BASE}/admin/cars/${car.id}/blocked-dates`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             const json = await res.json();
             setBlockedDates(json.data || []);
         } catch { setBlockedDates([]); }
@@ -172,14 +201,15 @@ const AdminDashboard = () => {
         try {
             const res = await fetch(`${API_BASE}/admin/cars/${blockedModal.carId}/blocked-dates`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders(),
                 body: JSON.stringify(blockedForm),
             });
+            if (res.status === 401) { handleUnauthorized(); return; }
             const json = await res.json();
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             setBlockedForm({ startDate: '', endDate: '', reason: '' });
             // Refresh list
-            const res2 = await fetch(`${API_BASE}/admin/cars/${blockedModal.carId}/blocked-dates`);
+            const res2 = await fetch(`${API_BASE}/admin/cars/${blockedModal.carId}/blocked-dates`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             const json2 = await res2.json();
             setBlockedDates(json2.data || []);
         } catch { alert('Erreur réseau.'); }
@@ -189,7 +219,8 @@ const AdminDashboard = () => {
     const deleteBlockedDate = async (id) => {
         if (!confirm('Supprimer cette période bloquée ?')) return;
         try {
-            const res = await fetch(`${API_BASE}/admin/blocked-dates/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE}/admin/blocked-dates/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
+            if (res.status === 401) { handleUnauthorized(); return; }
             const json = await res.json();
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             setBlockedDates(prev => prev.filter(d => d.id !== id));
@@ -207,9 +238,10 @@ const AdminDashboard = () => {
         try {
             const res = await fetch(`${API_BASE}/admin/bookings`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders(),
                 body: JSON.stringify(bookingForm),
             });
+            if (res.status === 401) { handleUnauthorized(); return; }
             const json = await res.json();
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             setBookingModal(false);
@@ -220,7 +252,8 @@ const AdminDashboard = () => {
 
     const confirmBooking = async (id) => {
         try {
-            const res = await fetch(`${API_BASE}/admin/bookings/${id}/confirm`, { method: 'PATCH' });
+            const res = await fetch(`${API_BASE}/admin/bookings/${id}/confirm`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${getToken()}` } });
+            if (res.status === 401) { handleUnauthorized(); return; }
             const json = await res.json();
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             await fetchAll();
@@ -229,7 +262,8 @@ const AdminDashboard = () => {
 
     const cancelBooking = async (id) => {
         try {
-            const res = await fetch(`${API_BASE}/admin/bookings/${id}/cancel`, { method: 'PATCH' });
+            const res = await fetch(`${API_BASE}/admin/bookings/${id}/cancel`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${getToken()}` } });
+            if (res.status === 401) { handleUnauthorized(); return; }
             const json = await res.json();
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             await fetchAll();
@@ -239,7 +273,8 @@ const AdminDashboard = () => {
     const deleteBooking = async (id) => {
         if (!confirm('Supprimer définitivement cette réservation ?')) return;
         try {
-            const res = await fetch(`${API_BASE}/admin/bookings/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE}/admin/bookings/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
+            if (res.status === 401) { handleUnauthorized(); return; }
             const json = await res.json();
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             await fetchAll();
@@ -285,9 +320,17 @@ const AdminDashboard = () => {
                             Tableau de Bord Admin
                         </h1>
                     </div>
-                    <p className="text-zinc-500 font-light ml-13">
-                        Gérez votre flotte et vos réservations en temps réel.
-                    </p>
+                    <div className="flex items-center justify-between">
+                        <p className="text-zinc-500 font-light ml-13">
+                            Gérez votre flotte et vos réservations en temps réel.
+                        </p>
+                        <button
+                            onClick={logout}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase tracking-wider text-zinc-500 hover:text-red-600 hover:bg-red-50 transition-all border border-zinc-200"
+                        >
+                            <LogOut size={16} /> Déconnexion
+                        </button>
+                    </div>
                 </div>
 
                 {error && (
