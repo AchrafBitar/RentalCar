@@ -72,6 +72,29 @@ class CarRepository {
             include: { company: true },
         });
     }
+
+    /**
+     * Update a car's attributes.
+     */
+    async update(id, data) {
+        return await prisma.car.update({
+            where: { id: parseInt(id) },
+            data,
+            include: { company: true },
+        });
+    }
+
+    /**
+     * Delete a car and its related bookings (cascade).
+     */
+    async delete(id) {
+        return await prisma.$transaction(async (tx) => {
+            await tx.booking.deleteMany({ where: { carId: parseInt(id) } });
+            return await tx.car.delete({
+                where: { id: parseInt(id) },
+            });
+        });
+    }
 }
 
 module.exports = new CarRepository();

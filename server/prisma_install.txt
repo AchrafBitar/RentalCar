@@ -1,0 +1,59 @@
+﻿npm : npm WARN using 
+--force Recommended 
+protections disabled.
+At line:1 char:1
++ npm install prisma@7.4.0 
+--save-dev --force 2>&1 | 
+Out-File -FilePath ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (npm  
+   WARN using ...tions d   
+ isabled.:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+npm ERR! code 1
+npm ERR! path C:\Users\Aash
+raf\Desktop\Rental Car\serv
+er\node_modules\prisma
+npm ERR! command failed
+npm ERR! command C:\WINDOWS
+\system32\cmd.exe /d /s /c 
+node 
+scripts/preinstall-entry.js
+npm ERR! ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÉ
+npm ERR! Γöé    Prisma 
+only supports Node.js 
+versions 20.19+, 22.12+, 
+24.0+.    Γöé
+npm ERR! Γöé    Please 
+upgrade your Node.js 
+version.                   
+         Γöé
+npm ERR! ΓööΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+Γöÿ
+
+npm ERR! A complete log of 
+this run can be found in: C
+:\Users\Aashraf\AppData\Loc
+al\npm-cache\_logs\2026-02-
+21T18_27_46_688Z-debug-0.lo
+g

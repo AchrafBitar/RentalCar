@@ -135,6 +135,27 @@ class BookingRepository {
             data: { status: 'CANCELLED' },
         });
     }
+
+    /**
+     * Fetch all bookings ordered by most recent first.
+     */
+    async findAll() {
+        return await prisma.booking.findMany({
+            include: {
+                car: { include: { company: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    /**
+     * Delete a booking by ID.
+     */
+    async delete(id) {
+        return await prisma.booking.delete({
+            where: { id: parseInt(id) },
+        });
+    }
 }
 
 module.exports = new BookingRepository();

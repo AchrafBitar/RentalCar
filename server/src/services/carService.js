@@ -33,6 +33,28 @@ class CarService {
     async createCar(data) {
         return await carRepository.create(data);
     }
+
+    /**
+     * Update a car's attributes.
+     */
+    async updateCar(id, data) {
+        const car = await carRepository.findById(id);
+        if (!car) {
+            throw new Error('CAR_NOT_FOUND');
+        }
+        return await carRepository.update(id, data);
+    }
+
+    /**
+     * Delete a car (cascades to bookings).
+     */
+    async deleteCar(id) {
+        const car = await carRepository.findById(id);
+        if (!car) {
+            throw new Error('CAR_NOT_FOUND');
+        }
+        return await carRepository.delete(id);
+    }
 }
 
 module.exports = new CarService();

@@ -102,6 +102,57 @@ class BookingService {
         }
         return booking;
     }
+
+    /**
+     * Get all bookings (for admin dashboard).
+     */
+    async getAllBookings() {
+        return await bookingRepository.findAll();
+    }
+
+    /**
+     * Admin-level booking creation (skips past-date check).
+     */
+    async createBookingAdmin(data) {
+        if (!data.carId || !data.startDate || !data.endDate) {
+            throw new Error('VALIDATION_ERROR: carId, startDate, and endDate are required.');
+        }
+
+        const start = new Date(data.startDate);
+        const end = new Date(data.endDate);
+
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            throw new Error('VALIDATION_ERROR: Invalid date format.');
+        }
+
+        if (start >= end) {
+            throw new Error('VALIDATION_ERROR: startDate must be before endDate.');
+        }
+
+        try {
+            const booking = await bookingRepository.createWithTransaction(data);
+            return booking;
+        } catch (error) {
+            if (['CAR_NOT_FOUND', 'CAR_UNAVAILABLE', 'DATE_CONFLICT', 'VERSION_CONFLICT'].includes(error.message)) {
+                throw error;
+            }
+            if (error.code === 'P2025') {
+                throw new Error('VERSION_CONFLICT');
+            }
+            throw new Error(`BOOKING_FAILED: ${error.message}`);
+        }
+    }
+
+    /**
+     * Delete a booking permanently.
+     */
+    async deleteBooking(bookingId) {
+        const booking = await bookingRepository.findById(bookingId);
+        if (!booking) {
+            throw new Error('BOOKING_NOT_FOUND');
+        }
+        return await bookingRepository.delete(bookingId);
+    }
 }
 
 module.exports = new BookingService();

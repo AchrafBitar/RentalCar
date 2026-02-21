@@ -2,67 +2,220 @@ import { useState, useEffect, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Car, Wrench, CheckCircle, XCircle, RefreshCw, AlertTriangle, Calendar } from 'lucide-react';
+import {
+    Car, Wrench, CheckCircle, XCircle, RefreshCw, AlertTriangle,
+    Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search
+} from 'lucide-react';
 
 const API_BASE = 'http://localhost:3000/api';
 
+// ────────────────────────────────────────────────────────────
+// Reusable Modal Shell
+// ────────────────────────────────────────────────────────────
+const Modal = ({ open, onClose, title, children }) => {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+            <div className="bg-white w-full max-w-lg mx-4 shadow-2xl border border-zinc-200 animate-in" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 bg-zinc-50">
+                    <h3 className="text-lg font-bold text-zinc-900 uppercase tracking-wider font-display">{title}</h3>
+                    <button onClick={onClose} className="text-zinc-400 hover:text-red-600 transition-colors"><X size={20} /></button>
+                </div>
+                <div className="p-6">{children}</div>
+            </div>
+        </div>
+    );
+};
+
+// ────────────────────────────────────────────────────────────
+// Status Badge
+// ────────────────────────────────────────────────────────────
+const StatusBadge = ({ status }) => {
+    const map = {
+        AVAILABLE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        MAINTENANCE: 'bg-orange-50 text-orange-700 border-orange-200',
+        PENDING: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+        CONFIRMED: 'bg-red-50 text-red-700 border-red-200',
+        CANCELLED: 'bg-zinc-100 text-zinc-500 border-zinc-200',
+    };
+    return (
+        <span className={`px-2 py-0.5 text-xs font-bold uppercase tracking-wide border ${map[status] || map.CANCELLED}`}>
+            {status}
+        </span>
+    );
+};
+
+// ────────────────────────────────────────────────────────────
+// Main Admin Dashboard
+// ────────────────────────────────────────────────────────────
 const AdminDashboard = () => {
+    const [activeTab, setActiveTab] = useState('calendar');
     const [events, setEvents] = useState([]);
     const [cars, setCars] = useState([]);
+    const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [togglingId, setTogglingId] = useState(null);
     const calendarRef = useRef(null);
 
-    // Fetch calendar data from the admin API
-    const fetchCalendarData = async () => {
+    // Car modal state
+    const [carModal, setCarModal] = useState({ open: false, mode: 'add', car: null });
+    const [carForm, setCarForm] = useState({ model: '', image: '', pricePerDay: '', companyId: '1' });
+    const [carSaving, setCarSaving] = useState(false);
+
+    // Booking modal state
+    const [bookingModal, setBookingModal] = useState(false);
+    const [bookingForm, setBookingForm] = useState({ carId: '', startDate: '', endDate: '', customerName: '', customerPhone: '', status: 'PENDING' });
+    const [bookingSaving, setBookingSaving] = useState(false);
+
+    // Search states
+    const [carSearch, setCarSearch] = useState('');
+    const [bookingSearch, setBookingSearch] = useState('');
+
+    // ─── Data Fetching ─────────────────────────────────────────
+    const fetchAll = async () => {
         try {
             setError(null);
-            const res = await fetch(`${API_BASE}/admin/calendar`);
-            if (!res.ok) throw new Error('Erreur lors du chargement.');
-            const json = await res.json();
-            setEvents(json.data.events);
-            setCars(json.data.cars);
+            const [calRes, carsRes, bookingsRes] = await Promise.all([
+                fetch(`${API_BASE}/admin/calendar`),
+                fetch(`${API_BASE}/admin/cars`),
+                fetch(`${API_BASE}/admin/bookings`),
+            ]);
+            if (!calRes.ok || !carsRes.ok || !bookingsRes.ok) throw new Error('Erreur lors du chargement.');
+            const [calJson, carsJson, bookingsJson] = await Promise.all([calRes.json(), carsRes.json(), bookingsRes.json()]);
+            setEvents(calJson.data.events);
+            setCars(carsJson.data);
+            setBookings(bookingsJson.data);
         } catch (err) {
-            console.error('Calendar fetch error:', err);
+            console.error('Fetch error:', err);
             setError(err.message);
-            // Fallback mock data for development
-            setCars([
-                { id: 1, model: 'Mercedes-Benz C-Class', status: 'AVAILABLE', pricePerDay: 800, version: 1 },
-                { id: 2, model: 'BMW X5', status: 'MAINTENANCE', pricePerDay: 1200, version: 1 },
-                { id: 3, model: 'Range Rover Sport', status: 'AVAILABLE', pricePerDay: 1800, version: 1 },
-            ]);
-            setEvents([
-                { id: 'booking-1', title: 'Mercedes-Benz C-Class — Ahmed', start: '2026-02-20', end: '2026-02-25', color: '#ef4444', extendedProps: { type: 'booking', status: 'CONFIRMED', carModel: 'Mercedes-Benz C-Class', customerName: 'Ahmed', customerPhone: '+212600000000' } },
-                { id: 'maintenance-2', title: '🔧 BMW X5 — Maintenance', start: '2026-02-18', end: '2027-02-18', color: '#f97316', extendedProps: { type: 'maintenance', carModel: 'BMW X5' } },
-                { id: 'booking-3', title: 'Range Rover Sport — Karim', start: '2026-02-22', end: '2026-02-28', color: '#facc15', extendedProps: { type: 'booking', status: 'PENDING', carModel: 'Range Rover Sport', customerName: 'Karim', customerPhone: '+212611111111' } },
-            ]);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { fetchCalendarData(); }, []);
+    useEffect(() => { fetchAll(); }, []);
 
-    // Toggle maintenance status for a vehicle
+    // ─── Car Handlers ──────────────────────────────────────────
+    const openCarModal = (mode, car = null) => {
+        setCarModal({ open: true, mode, car });
+        if (mode === 'edit' && car) {
+            setCarForm({ model: car.model, image: car.image || '', pricePerDay: String(car.pricePerDay), companyId: String(car.companyId) });
+        } else {
+            setCarForm({ model: '', image: '', pricePerDay: '', companyId: '1' });
+        }
+    };
+
+    const saveCar = async () => {
+        setCarSaving(true);
+        try {
+            const url = carModal.mode === 'edit'
+                ? `${API_BASE}/admin/cars/${carModal.car.id}`
+                : `${API_BASE}/admin/cars`;
+            const method = carModal.mode === 'edit' ? 'PUT' : 'POST';
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(carForm),
+            });
+            const json = await res.json();
+            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            setCarModal({ open: false, mode: 'add', car: null });
+            await fetchAll();
+        } catch { alert('Erreur réseau.'); }
+        finally { setCarSaving(false); }
+    };
+
+    const deleteCar = async (id) => {
+        if (!confirm('Supprimer ce véhicule et toutes ses réservations ?')) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin/cars/${id}`, { method: 'DELETE' });
+            const json = await res.json();
+            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await fetchAll();
+        } catch { alert('Erreur réseau.'); }
+    };
+
     const toggleMaintenance = async (carId) => {
         setTogglingId(carId);
         try {
             const res = await fetch(`${API_BASE}/admin/cars/${carId}/maintenance`, { method: 'PUT' });
             const json = await res.json();
-            if (!res.ok) {
-                alert(json.message || 'Erreur lors de la mise à jour.');
-                return;
-            }
-            // Refresh data
-            await fetchCalendarData();
-        } catch (err) {
-            alert('Erreur réseau. Veuillez réessayer.');
-        } finally {
-            setTogglingId(null);
-        }
+            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await fetchAll();
+        } catch { alert('Erreur réseau.'); }
+        finally { setTogglingId(null); }
     };
 
+    // ─── Booking Handlers ──────────────────────────────────────
+    const openBookingModal = () => {
+        setBookingModal(true);
+        setBookingForm({ carId: cars[0]?.id || '', startDate: '', endDate: '', customerName: '', customerPhone: '', status: 'PENDING' });
+    };
+
+    const saveBooking = async () => {
+        setBookingSaving(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/bookings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookingForm),
+            });
+            const json = await res.json();
+            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            setBookingModal(false);
+            await fetchAll();
+        } catch { alert('Erreur réseau.'); }
+        finally { setBookingSaving(false); }
+    };
+
+    const confirmBooking = async (id) => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/bookings/${id}/confirm`, { method: 'PATCH' });
+            const json = await res.json();
+            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await fetchAll();
+        } catch { alert('Erreur réseau.'); }
+    };
+
+    const cancelBooking = async (id) => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/bookings/${id}/cancel`, { method: 'PATCH' });
+            const json = await res.json();
+            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await fetchAll();
+        } catch { alert('Erreur réseau.'); }
+    };
+
+    const deleteBooking = async (id) => {
+        if (!confirm('Supprimer définitivement cette réservation ?')) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin/bookings/${id}`, { method: 'DELETE' });
+            const json = await res.json();
+            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await fetchAll();
+        } catch { alert('Erreur réseau.'); }
+    };
+
+    // ─── Filtered Data ─────────────────────────────────────────
+    const filteredCars = cars.filter(c =>
+        c.model.toLowerCase().includes(carSearch.toLowerCase()) ||
+        c.status.toLowerCase().includes(carSearch.toLowerCase())
+    );
+    const filteredBookings = bookings.filter(b =>
+        (b.customerName || '').toLowerCase().includes(bookingSearch.toLowerCase()) ||
+        (b.car?.model || '').toLowerCase().includes(bookingSearch.toLowerCase()) ||
+        b.status.toLowerCase().includes(bookingSearch.toLowerCase())
+    );
+
+    // ─── Tab Style Helper ──────────────────────────────────────
+    const tabClass = (tab) =>
+        `flex items-center gap-2 px-5 py-3 text-sm font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer border-b-2 ${activeTab === tab
+            ? 'border-red-600 text-red-600 bg-white'
+            : 'border-transparent text-zinc-400 hover:text-zinc-600 hover:border-zinc-300'
+        }`;
+
+    // ─── Loading ────────────────────────────────────────────────
     if (loading) return (
         <div className="flex justify-center items-center py-40 min-h-screen bg-zinc-100">
             <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600"></div>
@@ -84,124 +237,478 @@ const AdminDashboard = () => {
                         </h1>
                     </div>
                     <p className="text-zinc-500 font-light ml-13">
-                        Gérez votre flotte et visualisez les réservations en temps réel.
+                        Gérez votre flotte et vos réservations en temps réel.
                     </p>
-                </div>
-
-                {/* Legend */}
-                <div className="flex flex-wrap gap-6 mb-6 bg-white p-4 border border-zinc-200 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <span className="w-4 h-4 bg-emerald-500 rounded-sm inline-block"></span>
-                        <span className="text-sm text-zinc-600">Disponible</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="w-4 h-4 bg-red-500 rounded-sm inline-block"></span>
-                        <span className="text-sm text-zinc-600">Réservé (Confirmé)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="w-4 h-4 bg-yellow-400 rounded-sm inline-block"></span>
-                        <span className="text-sm text-zinc-600">Réservé (En attente)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="w-4 h-4 bg-orange-500 rounded-sm inline-block"></span>
-                        <span className="text-sm text-zinc-600">Maintenance</span>
-                    </div>
-                    <button
-                        onClick={fetchCalendarData}
-                        className="ml-auto flex items-center gap-2 text-sm text-zinc-500 hover:text-red-600 transition-colors"
-                    >
-                        <RefreshCw size={16} /> Rafraîchir
-                    </button>
                 </div>
 
                 {error && (
                     <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 mb-6 flex items-center gap-2 text-sm">
                         <AlertTriangle size={16} />
-                        <span>Mode démonstration — Données fictives affichées. Connectez le serveur pour les données réelles.</span>
+                        <span>Erreur de connexion au serveur. Vérifiez que le backend est démarré.</span>
                     </div>
                 )}
 
-                {/* Main Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Tabs */}
+                <div className="flex border-b border-zinc-200 mb-6 bg-zinc-50">
+                    <button className={tabClass('calendar')} onClick={() => setActiveTab('calendar')}>
+                        <Calendar size={16} /> Calendrier
+                    </button>
+                    <button className={tabClass('cars')} onClick={() => setActiveTab('cars')}>
+                        <Car size={16} /> Véhicules
+                    </button>
+                    <button className={tabClass('bookings')} onClick={() => setActiveTab('bookings')}>
+                        <ClipboardList size={16} /> Réservations
+                    </button>
+                    <button
+                        onClick={fetchAll}
+                        className="ml-auto flex items-center gap-2 px-4 text-sm text-zinc-400 hover:text-red-600 transition-colors"
+                    >
+                        <RefreshCw size={14} /> Rafraîchir
+                    </button>
+                </div>
 
-                    {/* Calendar */}
-                    <div className="lg:col-span-3 bg-white border border-zinc-200 shadow-sm p-4 md:p-6">
-                        <FullCalendar
-                            ref={calendarRef}
-                            plugins={[dayGridPlugin, interactionPlugin]}
-                            initialView="dayGridMonth"
-                            events={events}
-                            locale="fr"
-                            headerToolbar={{
-                                left: 'prev,next today',
-                                center: 'title',
-                                right: 'dayGridMonth,dayGridWeek',
-                            }}
-                            height="auto"
-                            eventDisplay="block"
-                            dayMaxEvents={3}
-                            eventContent={(arg) => (
-                                <div className="px-1 py-0.5 text-xs font-medium truncate">
-                                    {arg.event.title}
-                                </div>
-                            )}
+                {/* ═══════════════════════════════════════════════════════ */}
+                {/* TAB: CALENDAR                                          */}
+                {/* ═══════════════════════════════════════════════════════ */}
+                {activeTab === 'calendar' && (
+                    <>
+                        {/* Legend */}
+                        <div className="flex flex-wrap gap-6 mb-6 bg-white p-4 border border-zinc-200 shadow-sm">
+                            <div className="flex items-center gap-2">
+                                <span className="w-4 h-4 bg-emerald-500 rounded-sm inline-block"></span>
+                                <span className="text-sm text-zinc-600">Disponible</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-4 h-4 bg-red-500 rounded-sm inline-block"></span>
+                                <span className="text-sm text-zinc-600">Réservé (Confirmé)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-4 h-4 bg-yellow-400 rounded-sm inline-block"></span>
+                                <span className="text-sm text-zinc-600">Réservé (En attente)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-4 h-4 bg-orange-500 rounded-sm inline-block"></span>
+                                <span className="text-sm text-zinc-600">Maintenance</span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                            {/* Calendar */}
+                            <div className="lg:col-span-3 bg-white border border-zinc-200 shadow-sm p-4 md:p-6">
+                                <FullCalendar
+                                    ref={calendarRef}
+                                    plugins={[dayGridPlugin, interactionPlugin]}
+                                    initialView="dayGridMonth"
+                                    events={events}
+                                    locale="fr"
+                                    headerToolbar={{
+                                        left: 'prev,next today',
+                                        center: 'title',
+                                        right: 'dayGridMonth,dayGridWeek',
+                                    }}
+                                    height="auto"
+                                    eventDisplay="block"
+                                    dayMaxEvents={3}
+                                    eventContent={(arg) => (
+                                        <div className="px-1 py-0.5 text-xs font-medium truncate">
+                                            {arg.event.title}
+                                        </div>
+                                    )}
+                                />
+                            </div>
+
+                            {/* Vehicle Sidebar */}
+                            <div className="lg:col-span-1 space-y-4">
+                                <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-wider font-display flex items-center gap-2">
+                                    <Car size={20} className="text-red-600" />
+                                    Véhicules
+                                </h2>
+                                {cars.map((car) => {
+                                    const isMaintenance = car.status === 'MAINTENANCE';
+                                    const isToggling = togglingId === car.id;
+                                    return (
+                                        <div
+                                            key={car.id}
+                                            className={`bg-white border p-4 transition-all duration-200 ${isMaintenance
+                                                ? 'border-orange-300 bg-orange-50/50'
+                                                : 'border-zinc-200 hover:border-zinc-300'
+                                                }`}
+                                        >
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <h3 className="font-bold text-zinc-900 text-sm">{car.model}</h3>
+                                                    <p className="text-xs text-zinc-400 mt-0.5">{car.pricePerDay} MAD/jour</p>
+                                                </div>
+                                                <StatusBadge status={car.status} />
+                                            </div>
+                                            <button
+                                                onClick={() => toggleMaintenance(car.id)}
+                                                disabled={isToggling}
+                                                className={`w-full flex items-center justify-center gap-2 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${isMaintenance
+                                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                    : 'bg-orange-500 hover:bg-orange-600 text-white'
+                                                    } ${isToggling ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                            >
+                                                {isToggling ? (
+                                                    <RefreshCw size={14} className="animate-spin" />
+                                                ) : isMaintenance ? (
+                                                    <><CheckCircle size={14} /> Remettre en service</>
+                                                ) : (
+                                                    <><Wrench size={14} /> Mise hors service</>
+                                                )}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {/* ═══════════════════════════════════════════════════════ */}
+                {/* TAB: CARS MANAGEMENT                                   */}
+                {/* ═══════════════════════════════════════════════════════ */}
+                {activeTab === 'cars' && (
+                    <div className="bg-white border border-zinc-200 shadow-sm">
+                        {/* Toolbar */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-b border-zinc-200">
+                            <div className="relative w-full sm:w-72">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Rechercher un véhicule..."
+                                    value={carSearch}
+                                    onChange={e => setCarSearch(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                />
+                            </div>
+                            <button
+                                onClick={() => openCarModal('add')}
+                                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors"
+                            >
+                                <Plus size={16} /> Ajouter un véhicule
+                            </button>
+                        </div>
+
+                        {/* Table */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">ID</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Modèle</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Prix/Jour</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Statut</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Compagnie</th>
+                                        <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredCars.map((car) => (
+                                        <tr key={car.id} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
+                                            <td className="px-4 py-3 text-sm text-zinc-400 font-mono">#{car.id}</td>
+                                            <td className="px-4 py-3 text-sm font-bold text-zinc-900">{car.model}</td>
+                                            <td className="px-4 py-3 text-sm text-zinc-600">{car.pricePerDay} MAD</td>
+                                            <td className="px-4 py-3"><StatusBadge status={car.status} /></td>
+                                            <td className="px-4 py-3 text-sm text-zinc-500">{car.company?.name || '—'}</td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        onClick={() => toggleMaintenance(car.id)}
+                                                        disabled={togglingId === car.id}
+                                                        title={car.status === 'MAINTENANCE' ? 'Remettre en service' : 'Mise hors service'}
+                                                        className={`p-1.5 rounded transition-colors ${car.status === 'MAINTENANCE'
+                                                            ? 'text-emerald-600 hover:bg-emerald-50'
+                                                            : 'text-orange-500 hover:bg-orange-50'
+                                                            }`}
+                                                    >
+                                                        {togglingId === car.id ? <RefreshCw size={16} className="animate-spin" /> : <Wrench size={16} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openCarModal('edit', car)}
+                                                        className="p-1.5 rounded text-zinc-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                        title="Modifier"
+                                                    >
+                                                        <Pencil size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteCar(car.id)}
+                                                        className="p-1.5 rounded text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                        title="Supprimer"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredCars.length === 0 && (
+                                        <tr><td colSpan="6" className="px-4 py-8 text-center text-zinc-400 text-sm">Aucun véhicule trouvé.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="px-4 py-3 border-t border-zinc-100 text-xs text-zinc-400">
+                            {filteredCars.length} véhicule(s)
+                        </div>
+                    </div>
+                )}
+
+                {/* ═══════════════════════════════════════════════════════ */}
+                {/* TAB: BOOKINGS MANAGEMENT                               */}
+                {/* ═══════════════════════════════════════════════════════ */}
+                {activeTab === 'bookings' && (
+                    <div className="bg-white border border-zinc-200 shadow-sm">
+                        {/* Toolbar */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-b border-zinc-200">
+                            <div className="relative w-full sm:w-72">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Rechercher une réservation..."
+                                    value={bookingSearch}
+                                    onChange={e => setBookingSearch(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-4 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                />
+                            </div>
+                            <button
+                                onClick={openBookingModal}
+                                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors"
+                            >
+                                <Plus size={16} /> Ajouter une réservation
+                            </button>
+                        </div>
+
+                        {/* Table */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">ID</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Véhicule</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Client</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Téléphone</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Du</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Au</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Statut</th>
+                                        <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredBookings.map((b) => (
+                                        <tr key={b.id} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
+                                            <td className="px-4 py-3 text-sm text-zinc-400 font-mono">#{b.id}</td>
+                                            <td className="px-4 py-3 text-sm font-bold text-zinc-900">{b.car?.model || '—'}</td>
+                                            <td className="px-4 py-3 text-sm text-zinc-700">{b.customerName || '—'}</td>
+                                            <td className="px-4 py-3 text-sm text-zinc-500">{b.customerPhone || '—'}</td>
+                                            <td className="px-4 py-3 text-sm text-zinc-600">{new Date(b.startDate).toLocaleDateString('fr-FR')}</td>
+                                            <td className="px-4 py-3 text-sm text-zinc-600">{new Date(b.endDate).toLocaleDateString('fr-FR')}</td>
+                                            <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {b.status === 'PENDING' && (
+                                                        <button
+                                                            onClick={() => confirmBooking(b.id)}
+                                                            className="p-1.5 rounded text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                                            title="Confirmer"
+                                                        >
+                                                            <CheckCircle size={16} />
+                                                        </button>
+                                                    )}
+                                                    {(b.status === 'PENDING' || b.status === 'CONFIRMED') && (
+                                                        <button
+                                                            onClick={() => cancelBooking(b.id)}
+                                                            className="p-1.5 rounded text-orange-500 hover:bg-orange-50 transition-colors"
+                                                            title="Annuler"
+                                                        >
+                                                            <XCircle size={16} />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => deleteBooking(b.id)}
+                                                        className="p-1.5 rounded text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                        title="Supprimer"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredBookings.length === 0 && (
+                                        <tr><td colSpan="8" className="px-4 py-8 text-center text-zinc-400 text-sm">Aucune réservation trouvée.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="px-4 py-3 border-t border-zinc-100 text-xs text-zinc-400">
+                            {filteredBookings.length} réservation(s)
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {/* MODAL: Car Add / Edit                                      */}
+            {/* ═══════════════════════════════════════════════════════════ */}
+            <Modal
+                open={carModal.open}
+                onClose={() => setCarModal({ open: false, mode: 'add', car: null })}
+                title={carModal.mode === 'edit' ? 'Modifier le véhicule' : 'Ajouter un véhicule'}
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Modèle *</label>
+                        <input
+                            type="text"
+                            value={carForm.model}
+                            onChange={e => setCarForm({ ...carForm, model: e.target.value })}
+                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                            placeholder="Ex: Mercedes-Benz C-Class"
                         />
                     </div>
-
-                    {/* Vehicle Sidebar */}
-                    <div className="lg:col-span-1 space-y-4">
-                        <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-wider font-display flex items-center gap-2">
-                            <Car size={20} className="text-red-600" />
-                            Véhicules
-                        </h2>
-
-                        {cars.map((car) => {
-                            const isMaintenance = car.status === 'MAINTENANCE';
-                            const isToggling = togglingId === car.id;
-
-                            return (
-                                <div
-                                    key={car.id}
-                                    className={`bg-white border p-4 transition-all duration-200 ${isMaintenance
-                                            ? 'border-orange-300 bg-orange-50/50'
-                                            : 'border-zinc-200 hover:border-zinc-300'
-                                        }`}
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <h3 className="font-bold text-zinc-900 text-sm">{car.model}</h3>
-                                            <p className="text-xs text-zinc-400 mt-0.5">{car.pricePerDay} MAD/jour</p>
-                                        </div>
-                                        <span className={`px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${isMaintenance
-                                                ? 'bg-orange-100 text-orange-700 border border-orange-200'
-                                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                            }`}>
-                                            {isMaintenance ? 'Maintenance' : 'Actif'}
-                                        </span>
-                                    </div>
-
-                                    <button
-                                        onClick={() => toggleMaintenance(car.id)}
-                                        disabled={isToggling}
-                                        className={`w-full flex items-center justify-center gap-2 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${isMaintenance
-                                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                                : 'bg-orange-500 hover:bg-orange-600 text-white'
-                                            } ${isToggling ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                    >
-                                        {isToggling ? (
-                                            <RefreshCw size={14} className="animate-spin" />
-                                        ) : isMaintenance ? (
-                                            <><CheckCircle size={14} /> Remettre en service</>
-                                        ) : (
-                                            <><Wrench size={14} /> Mise hors service</>
-                                        )}
-                                    </button>
-                                </div>
-                            );
-                        })}
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Image URL</label>
+                        <input
+                            type="text"
+                            value={carForm.image}
+                            onChange={e => setCarForm({ ...carForm, image: e.target.value })}
+                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                            placeholder="https://..."
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Prix / Jour (MAD) *</label>
+                            <input
+                                type="number"
+                                value={carForm.pricePerDay}
+                                onChange={e => setCarForm({ ...carForm, pricePerDay: e.target.value })}
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                placeholder="800"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Company ID *</label>
+                            <input
+                                type="number"
+                                value={carForm.companyId}
+                                onChange={e => setCarForm({ ...carForm, companyId: e.target.value })}
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                placeholder="1"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
+                        <button
+                            onClick={() => setCarModal({ open: false, mode: 'add', car: null })}
+                            className="px-4 py-2 text-sm font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-700 transition-colors"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            onClick={saveCar}
+                            disabled={carSaving || !carForm.model || !carForm.pricePerDay || !carForm.companyId}
+                            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {carSaving ? 'Enregistrement...' : carModal.mode === 'edit' ? 'Mettre à jour' : 'Ajouter'}
+                        </button>
                     </div>
                 </div>
-            </div>
+            </Modal>
+
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {/* MODAL: Booking Add                                         */}
+            {/* ═══════════════════════════════════════════════════════════ */}
+            <Modal
+                open={bookingModal}
+                onClose={() => setBookingModal(false)}
+                title="Ajouter une réservation"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Véhicule *</label>
+                        <select
+                            value={bookingForm.carId}
+                            onChange={e => setBookingForm({ ...bookingForm, carId: e.target.value })}
+                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors bg-white"
+                        >
+                            <option value="">Sélectionner...</option>
+                            {cars.filter(c => c.status === 'AVAILABLE').map(c => (
+                                <option key={c.id} value={c.id}>{c.model} — {c.pricePerDay} MAD/jour</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Date début *</label>
+                            <input
+                                type="date"
+                                value={bookingForm.startDate}
+                                onChange={e => setBookingForm({ ...bookingForm, startDate: e.target.value })}
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Date fin *</label>
+                            <input
+                                type="date"
+                                value={bookingForm.endDate}
+                                onChange={e => setBookingForm({ ...bookingForm, endDate: e.target.value })}
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Nom client</label>
+                            <input
+                                type="text"
+                                value={bookingForm.customerName}
+                                onChange={e => setBookingForm({ ...bookingForm, customerName: e.target.value })}
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                placeholder="Ahmed"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Téléphone</label>
+                            <input
+                                type="text"
+                                value={bookingForm.customerPhone}
+                                onChange={e => setBookingForm({ ...bookingForm, customerPhone: e.target.value })}
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                placeholder="+212600000000"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Statut</label>
+                        <select
+                            value={bookingForm.status}
+                            onChange={e => setBookingForm({ ...bookingForm, status: e.target.value })}
+                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors bg-white"
+                        >
+                            <option value="PENDING">En attente</option>
+                            <option value="CONFIRMED">Confirmé</option>
+                        </select>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
+                        <button
+                            onClick={() => setBookingModal(false)}
+                            className="px-4 py-2 text-sm font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-700 transition-colors"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            onClick={saveBooking}
+                            disabled={bookingSaving || !bookingForm.carId || !bookingForm.startDate || !bookingForm.endDate}
+                            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {bookingSaving ? 'Enregistrement...' : 'Ajouter'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

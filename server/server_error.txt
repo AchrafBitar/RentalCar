@@ -1,0 +1,138 @@
+﻿[dotenv@17.3.1] injecting env (6) from .env -- tip: ΓÜí∩╕Å secrets for agents: https://dotenvx.com/as2
+node : node:internal/m
+odules/cjs/loader:1146
+At line:1 char:1
++ node src/server.js 
+2>&1 | Out-File 
+-FilePath 
+server_error.txt 
+-Encodi ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~
+    + CategoryInfo    
+          : 
+NotSpecified: (nod    
+e:internal/modules/cjs
+    
+/loader:1146:String) 
+[    ], 
+RemoteException
+    + 
+FullyQualifiedErrorI  
+  d : 
+NativeCommandError
+ 
+  throw err;
+  ^
+
+Error: Cannot find 
+module '.prisma/client
+/default'
+Require stack:
+- C:\Users\Aashraf\Des
+ktop\Rental Car\server
+\node_modules\@prisma\
+client\default.js
+- C:\Users\Aashraf\Des
+ktop\Rental Car\server
+\src\prismaClient.js
+- C:\Users\Aashraf\Des
+ktop\Rental Car\server
+\src\repositories\carR
+epository.js
+- C:\Users\Aashraf\Des
+ktop\Rental Car\server
+\src\services\carServi
+ce.js
+- C:\Users\Aashraf\Des
+ktop\Rental Car\server
+\src\controllers\carCo
+ntroller.js
+- C:\Users\Aashraf\Des
+ktop\Rental Car\server
+\src\routes\carRoutes.
+js
+- C:\Users\Aashraf\Des
+ktop\Rental 
+Car\server\src\app.js
+- C:\Users\Aashraf\Des
+ktop\Rental Car\server
+\src\server.js
+    at Module._resolve
+Filename (node:interna
+l/modules/cjs/loader:1
+143:15)
+    at Module._load (n
+ode:internal/modules/c
+js/loader:984:27)
+    at Module.require 
+(node:internal/modules
+/cjs/loader:1231:19)
+    at require (node:i
+nternal/modules/helper
+s:179:18)
+    at 
+Object.<anonymous> (C:
+\Users\Aashraf\Desktop
+\Rental Car\server\nod
+e_modules\@prisma\clie
+nt\default.js:2:6)
+    at 
+Module._compile (node:
+internal/modules/cjs/l
+oader:1369:14)
+    at Module._extensi
+ons..js (node:internal
+/modules/cjs/loader:14
+27:10)
+    at Module.load (no
+de:internal/modules/cj
+s/loader:1206:32)
+    at Module._load (n
+ode:internal/modules/c
+js/loader:1022:12)
+    at Module.require 
+(node:internal/modules
+/cjs/loader:1231:19) {
+  code: 
+'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\Aashra
+f\\Desktop\\Rental Car
+\\server\\node_modules
+\\@prisma\\client\\def
+ault.js',
+    'C:\\Users\\Aashra
+f\\Desktop\\Rental Car
+\\server\\src\\prismaC
+lient.js',
+    'C:\\Users\\Aashra
+f\\Desktop\\Rental Car
+\\server\\src\\reposit
+ories\\carRepository.j
+s',
+    'C:\\Users\\Aashra
+f\\Desktop\\Rental Car
+\\server\\src\\service
+s\\carService.js',
+    'C:\\Users\\Aashra
+f\\Desktop\\Rental Car
+\\server\\src\\control
+lers\\carController.js
+',
+    'C:\\Users\\Aashra
+f\\Desktop\\Rental Car
+\\server\\src\\routes\
+\carRoutes.js',
+    'C:\\Users\\Aashra
+f\\Desktop\\Rental Car
+\\server\\src\\app.js'
+,
+    'C:\\Users\\Aashra
+f\\Desktop\\Rental Car
+\\server\\src\\server.
+js'
+  ]
+}
+
+Node.js v20.12.2
