@@ -191,6 +191,29 @@ class AdminController {
         }
     }
 
+    async getBookingDocuments(req, res) {
+        try {
+            const fs = require('fs').promises;
+            const path = require('path');
+            const bookingId = req.params.id;
+            const dir = path.join(__dirname, '../../uploads/bookings', bookingId.toString());
+
+            try {
+                const files = await fs.readdir(dir);
+                const urls = files.map(f => `/uploads/bookings/${bookingId}/${f}`);
+                res.json({ success: true, data: urls });
+            } catch (err) {
+                if (err.code === 'ENOENT') {
+                    return res.json({ success: true, data: [] });
+                }
+                throw err;
+            }
+        } catch (error) {
+            console.error('[AdminController] Get booking docs error:', error);
+            res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: 'Erreur lors du chargement des documents.' });
+        }
+    }
+
     // ─── Blocked Dates ────────────────────────────────────────────────────
     async getBlockedDates(req, res) {
         try {

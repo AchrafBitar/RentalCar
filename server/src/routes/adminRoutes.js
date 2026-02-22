@@ -47,6 +47,7 @@ router.post('/bookings', (req, res) => adminController.createBooking(req, res));
 router.patch('/bookings/:id/confirm', (req, res) => adminController.confirmBooking(req, res));
 router.patch('/bookings/:id/cancel', (req, res) => adminController.cancelBooking(req, res));
 router.delete('/bookings/:id', (req, res) => adminController.deleteBooking(req, res));
+router.get('/bookings/:id/documents', (req, res) => adminController.getBookingDocuments(req, res));
 
 // ─── Blocked Dates ───────────────────────────────────────────────────
 router.get('/cars/:id/blocked-dates', (req, res) => adminController.getBlockedDates(req, res));

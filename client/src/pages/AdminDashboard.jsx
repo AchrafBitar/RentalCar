@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import {
     Car, Wrench, CheckCircle, XCircle, RefreshCw, AlertTriangle,
-    Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban, LogOut, Upload, Image
+    Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban, LogOut, Upload, Image, FileText
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -98,6 +98,9 @@ const AdminDashboard = () => {
     const [blockedForm, setBlockedForm] = useState({ startDate: '', endDate: '', reason: '' });
     const [blockedSaving, setBlockedSaving] = useState(false);
     const [blockedLoading, setBlockedLoading] = useState(false);
+
+    // Docs modal state
+    const [docsModal, setDocsModal] = useState({ open: false, bookingId: null, documents: [], loading: false });
 
     // Search states
     const [carSearch, setCarSearch] = useState('');
@@ -250,6 +253,24 @@ const AdminDashboard = () => {
             if (!res.ok) { alert(json.message || 'Erreur.'); return; }
             setBlockedDates(prev => prev.filter(d => d.id !== id));
         } catch { alert('Erreur réseau.'); }
+    };
+
+    // ─── Document Viewer ──────────────────────────────────────────
+    const openDocsModal = async (bookingId) => {
+        setDocsModal({ open: true, bookingId, documents: [], loading: true });
+        try {
+            const res = await fetch(`${API_BASE}/admin/bookings/${bookingId}/documents`, { headers: authHeaders() });
+            const json = await res.json();
+            if (res.ok) {
+                setDocsModal(prev => ({ ...prev, documents: json.data || [], loading: false }));
+            } else {
+                setDocsModal(prev => ({ ...prev, loading: false }));
+                alert(json.message);
+            }
+        } catch {
+            setDocsModal(prev => ({ ...prev, loading: false }));
+            alert('Erreur réseau.');
+        }
     };
 
     // ─── Booking Handlers ──────────────────────────────────────
@@ -645,6 +666,13 @@ const AdminDashboard = () => {
                                             <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        onClick={() => openDocsModal(b.id)}
+                                                        className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition-colors"
+                                                        title="Voir Documents"
+                                                    >
+                                                        <FileText size={16} />
+                                                    </button>
                                                     {b.status === 'PENDING' && (
                                                         <button
                                                             onClick={() => confirmBooking(b.id)}
@@ -972,6 +1000,38 @@ const AdminDashboard = () => {
                             </button>
                         </div>
                     </div>
+                </div>
+            </Modal>
+
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {/* MODAL: Document Viewer                                     */}
+            {/* ═══════════════════════════════════════════════════════════ */}
+            <Modal
+                open={docsModal.open}
+                onClose={() => setDocsModal({ open: false, bookingId: null, documents: [], loading: false })}
+                title="Documents de Réservation"
+            >
+                <div>
+                    {docsModal.loading ? (
+                        <p className="text-zinc-500 text-sm">Chargement des documents...</p>
+                    ) : docsModal.documents.length === 0 ? (
+                        <p className="text-zinc-500 text-sm">Aucun document trouvé pour cette réservation.</p>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            {docsModal.documents.map((url, idx) => (
+                                <a
+                                    key={idx}
+                                    href={`${API_BASE.replace('/api', '')}${url}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 p-3 border border-zinc-200 rounded hover:bg-zinc-50 transition-colors"
+                                >
+                                    <FileText className="text-red-600" size={24} />
+                                    <span className="text-sm font-medium text-zinc-800 break-all">{url.split('/').pop()}</span>
+                                </a>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </Modal>
         </div>

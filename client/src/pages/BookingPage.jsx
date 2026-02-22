@@ -217,8 +217,8 @@ const BookingPage = () => {
 
     if (bookingSuccess) {
         return (
-            <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center p-6">
-                <div className="bg-white border border-zinc-200 shadow-xl max-w-2xl w-full p-10 text-center relative overflow-hidden">
+            <div className="fixed inset-0 z-[100] bg-zinc-50 flex flex-col items-center justify-center p-6 overflow-y-auto">
+                <div className="bg-white border border-zinc-200 shadow-xl max-w-2xl w-full p-10 text-center relative overflow-hidden my-auto">
                     <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
                     <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle className="text-emerald-500" size={40} />
