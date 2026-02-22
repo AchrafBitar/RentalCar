@@ -16,7 +16,7 @@ const apiFetch = async (endpoint, options = {}) => {
     const url = `${API_BASE}${endpoint}`;
 
     const headers = new Headers(options.headers || {});
-    headers.append('X-Tenant-Domain', getTenantDomain());
+    headers.set('X-Tenant-Domain', getTenantDomain());
 
     if (options.body && !(options.body instanceof FormData)) {
         headers.append('Content-Type', 'application/json');

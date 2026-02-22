@@ -13,14 +13,10 @@ export const tenantService = {
         const domainSlug = hostname === '127.0.0.1' ? 'localhost' : hostname;
 
         try {
-            const response = await api.get('/tenant/config', {
-                headers: {
-                    'X-Tenant-Domain': domainSlug,
-                },
-            });
+            const response = await api.get('/tenant/config');
 
-            if (response.data.success) {
-                return response.data.data; // The config object
+            if (response && response.success) {
+                return response.data; // The config object
             }
             return null;
         } catch (error) {
