@@ -11,13 +11,21 @@ router.get('/config', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Header X-Tenant-Domain manquant.' });
         }
 
-        const company = await prisma.company.findUnique({
+        let company = await prisma.company.findUnique({
             where: { domainSlug: slug },
             include: { settings: true }
         });
 
+        if (!company) {
+            // Fallback for Vercel Preview URLs: If not found, check if there's only 1 tenant total.
+            const allCompanies = await prisma.company.findMany({ include: { settings: true } });
+            if (allCompanies.length === 1) {
+                company = allCompanies[0];
+            }
+        }
+
         if (!company || !company.settings) {
-            return res.status(404).json({ success: false, message: 'Agence introuvable pour ce domaine.' });
+            return res.status(404).json({ success: false, message: `Agence introuvable pour ce domaine: ${slug}` });
         }
 
         res.json({
