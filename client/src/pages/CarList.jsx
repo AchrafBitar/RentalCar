@@ -15,7 +15,7 @@ const CarList = () => {
     const [activeCategory, setActiveCategory] = useState('ALL');
 
     useEffect(() => {
-        fetch('http://localhost:3000/api/cars')
+        fetch(`${(import.meta.env.VITE_API_URL || 'http://localhost:3000/api')}/cars`)
             .then(res => {
                 if (!res.ok) throw new Error('Network response was not ok');
                 return res.json();
@@ -102,8 +102,8 @@ const CarList = () => {
                             key={cat.key}
                             onClick={() => setActiveCategory(cat.key)}
                             className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all duration-200 whitespace-nowrap border ${activeCategory === cat.key
-                                    ? 'bg-zinc-950 text-white border-zinc-950 shadow-lg'
-                                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:text-zinc-700'
+                                ? 'bg-zinc-950 text-white border-zinc-950 shadow-lg'
+                                : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:text-zinc-700'
                                 }`}
                         >
                             {cat.icon}

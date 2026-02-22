@@ -8,7 +8,7 @@ import {
     Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban, LogOut
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // ────────────────────────────────────────────────────────────
 // Reusable Modal Shell
@@ -503,8 +503,8 @@ const AdminDashboard = () => {
                                             <td className="px-4 py-3 text-sm font-bold text-zinc-900">{car.model}</td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${(car.category || 'CONFORT') === 'LUX' ? 'bg-amber-100 text-amber-700' :
-                                                        (car.category || 'CONFORT') === 'BUDGET' ? 'bg-emerald-100 text-emerald-700' :
-                                                            'bg-blue-100 text-blue-700'
+                                                    (car.category || 'CONFORT') === 'BUDGET' ? 'bg-emerald-100 text-emerald-700' :
+                                                        'bg-blue-100 text-blue-700'
                                                     }`}>{car.category || 'CONFORT'}</span>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-zinc-600">{car.pricePerDay} MAD</td>

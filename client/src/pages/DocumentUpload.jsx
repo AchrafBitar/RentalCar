@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Upload, FileText, CreditCard, CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 /**
  * DocumentUpload — Page for uploading Permis de Conduire & CIN.
