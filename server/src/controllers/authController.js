@@ -34,16 +34,34 @@ exports.login = async (req, res) => {
             });
         }
 
+        // Fetch the corresponding companyId
+        const prisma = require('../prismaClient');
+        const company = await prisma.company.findFirst({
+            where: { adminUser: username },
+            select: { id: true, domainSlug: true }
+        });
+
+        if (!company) {
+            return res.status(403).json({
+                success: false,
+                message: 'Accès refusé. Aucune agence rattachée.',
+            });
+        }
+
         // Generate JWT (24h expiry)
         const token = jwt.sign(
-            { username },
+            {
+                username,
+                companyId: company.id,
+                domainSlug: company.domainSlug
+            },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
         return res.json({
             success: true,
-            data: { token },
+            data: { token, companyId: company.id, slug: company.domainSlug },
             message: 'Connexion réussie.',
         });
     } catch (err) {

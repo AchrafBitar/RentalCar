@@ -30,7 +30,8 @@ class BookingController {
                 cin: req.files['cin'][0]
             };
 
-            const booking = await bookingService.createBooking(data, files);
+            const tenantId = req.tenantId || (req.admin && req.admin.companyId);
+            const booking = await bookingService.createBooking(data, files, tenantId);
             res.status(201).json({
                 success: true,
                 data: booking,
@@ -77,7 +78,8 @@ class BookingController {
      */
     async confirmBooking(req, res) {
         try {
-            const booking = await bookingService.confirmBooking(req.params.id);
+            const tenantId = req.tenantId || (req.admin && req.admin.companyId);
+            const booking = await bookingService.confirmBooking(req.params.id, tenantId);
             res.json({
                 success: true,
                 data: booking,
@@ -100,7 +102,8 @@ class BookingController {
      */
     async cancelBooking(req, res) {
         try {
-            const booking = await bookingService.cancelBooking(req.params.id);
+            const tenantId = req.tenantId || (req.admin && req.admin.companyId);
+            const booking = await bookingService.cancelBooking(req.params.id, tenantId);
             res.json({
                 success: true,
                 data: booking,

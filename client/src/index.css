@@ -4,8 +4,8 @@
 @theme {
   --font-display: 'Playfair Display', serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
-  --color-brand-gold: #dc2626;
-  --color-brand-dark: #18181b;
+  --color-brand-primary: var(--primary-color, #dc2626);
+  --color-brand-secondary: var(--secondary-color, #18181b);
 }
 
 

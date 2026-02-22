@@ -12,7 +12,8 @@ class AdminController {
     // ─── Calendar ────────────────────────────────────────────────────────
     async getCalendarEvents(req, res) {
         try {
-            const data = await adminService.getCalendarData();
+            const tenantId = req.admin.companyId;
+            const data = await adminService.getCalendarData(tenantId);
             res.json({ success: true, data });
         } catch (error) {
             console.error('[AdminController] Calendar error:', error);
@@ -26,7 +27,8 @@ class AdminController {
 
     async toggleMaintenance(req, res) {
         try {
-            const car = await adminService.toggleCarMaintenance(req.params.id);
+            const tenantId = req.admin.companyId;
+            const car = await adminService.toggleCarMaintenance(req.params.id, tenantId);
             res.json({
                 success: true,
                 data: car,
@@ -49,7 +51,8 @@ class AdminController {
     // ─── Cars CRUD ───────────────────────────────────────────────────────
     async getAllCars(req, res) {
         try {
-            const cars = await carService.getAllCarsAdmin();
+            const tenantId = req.admin.companyId;
+            const cars = await carService.getAllCarsAdmin(tenantId);
             res.json({ success: true, data: cars });
         } catch (error) {
             console.error('[AdminController] Get cars error:', error);
@@ -59,17 +62,19 @@ class AdminController {
 
     async createCar(req, res) {
         try {
-            const { model, image, pricePerDay, companyId, category } = req.body;
-            if (!model || !pricePerDay || !companyId) {
-                return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'model, pricePerDay, et companyId sont requis.' });
+            const { model, image, pricePerDay, category } = req.body;
+            const tenantId = req.admin.companyId;
+
+            if (!model || !pricePerDay) {
+                return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'model et pricePerDay sont requis.' });
             }
             const car = await carService.createCar({
                 model,
                 image: image || null,
                 pricePerDay: parseFloat(pricePerDay),
-                companyId: parseInt(companyId),
+                companyId: tenantId,
                 ...(category && { category }),
-            });
+            }, tenantId);
             res.status(201).json({ success: true, data: car, message: 'Véhicule ajouté avec succès.' });
         } catch (error) {
             console.error('[AdminController] Create car error:', error);
@@ -79,15 +84,15 @@ class AdminController {
 
     async updateCar(req, res) {
         try {
+            const tenantId = req.admin.companyId;
             const updateData = {};
-            const { model, image, pricePerDay, companyId, category } = req.body;
+            const { model, image, pricePerDay, category } = req.body;
             if (model !== undefined) updateData.model = model;
             if (image !== undefined) updateData.image = image;
             if (pricePerDay !== undefined) updateData.pricePerDay = parseFloat(pricePerDay);
-            if (companyId !== undefined) updateData.companyId = parseInt(companyId);
             if (category !== undefined) updateData.category = category;
 
-            const car = await carService.updateCar(req.params.id, updateData);
+            const car = await carService.updateCar(req.params.id, updateData, tenantId);
             res.json({ success: true, data: car, message: 'Véhicule mis à jour.' });
         } catch (error) {
             if (error.message === 'CAR_NOT_FOUND') {
@@ -114,7 +119,8 @@ class AdminController {
     // ─── Bookings CRUD ──────────────────────────────────────────────────
     async getAllBookings(req, res) {
         try {
-            const bookings = await bookingService.getAllBookings();
+            const tenantId = req.admin.companyId;
+            const bookings = await bookingService.getAllBookings(tenantId);
             res.json({ success: true, data: bookings });
         } catch (error) {
             console.error('[AdminController] Get bookings error:', error);
@@ -124,7 +130,8 @@ class AdminController {
 
     async createBooking(req, res) {
         try {
-            const booking = await bookingService.createBookingAdmin(req.body);
+            const tenantId = req.admin.companyId;
+            const booking = await bookingService.createBookingAdmin(req.body, tenantId);
             res.status(201).json({ success: true, data: booking, message: 'Réservation créée avec succès.' });
         } catch (error) {
             const errorMap = {
@@ -148,7 +155,8 @@ class AdminController {
 
     async confirmBooking(req, res) {
         try {
-            const booking = await bookingService.confirmBooking(req.params.id);
+            const tenantId = req.admin.companyId;
+            const booking = await bookingService.confirmBooking(req.params.id, tenantId);
             res.json({ success: true, data: booking, message: 'Réservation confirmée.' });
         } catch (error) {
             if (error.message === 'BOOKING_NOT_FOUND') {
@@ -164,7 +172,8 @@ class AdminController {
 
     async cancelBooking(req, res) {
         try {
-            const booking = await bookingService.cancelBooking(req.params.id);
+            const tenantId = req.admin.companyId;
+            const booking = await bookingService.cancelBooking(req.params.id, tenantId);
             res.json({ success: true, data: booking, message: 'Réservation annulée.' });
         } catch (error) {
             if (error.message === 'BOOKING_NOT_FOUND') {
@@ -180,7 +189,8 @@ class AdminController {
 
     async deleteBooking(req, res) {
         try {
-            await bookingService.deleteBooking(req.params.id);
+            const tenantId = req.admin.companyId;
+            await bookingService.deleteBooking(req.params.id, tenantId);
             res.json({ success: true, message: 'Réservation supprimée.' });
         } catch (error) {
             if (error.message === 'BOOKING_NOT_FOUND') {
@@ -217,7 +227,8 @@ class AdminController {
     // ─── Blocked Dates ────────────────────────────────────────────────────
     async getBlockedDates(req, res) {
         try {
-            const dates = await blockedDateRepository.findByCar(req.params.id);
+            const tenantId = req.admin.companyId;
+            const dates = await blockedDateRepository.findByCar(req.params.id, tenantId);
             res.json({ success: true, data: dates });
         } catch (error) {
             console.error('[AdminController] Get blocked dates error:', error);
@@ -229,6 +240,7 @@ class AdminController {
         try {
             const { startDate, endDate, reason } = req.body;
             const carId = req.params.id;
+            const tenantId = req.admin.companyId;
 
             if (!startDate || !endDate) {
                 return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'startDate et endDate sont requis.' });
@@ -240,12 +252,12 @@ class AdminController {
                 return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'Dates invalides.' });
             }
 
-            const car = await carRepository.findById(carId);
+            const car = await carRepository.findById(carId, tenantId);
             if (!car) {
                 return res.status(404).json({ success: false, error: 'CAR_NOT_FOUND', message: 'Véhicule introuvable.' });
             }
 
-            const blocked = await blockedDateRepository.create({ carId, startDate, endDate, reason: reason || '' });
+            const blocked = await blockedDateRepository.create({ carId, startDate, endDate, reason: reason || '', tenantId });
             res.status(201).json({ success: true, data: blocked, message: 'Période bloquée ajoutée.' });
         } catch (error) {
             console.error('[AdminController] Create blocked date error:', error);
@@ -255,11 +267,12 @@ class AdminController {
 
     async deleteBlockedDate(req, res) {
         try {
-            const blocked = await blockedDateRepository.findById(req.params.id);
+            const tenantId = req.admin.companyId;
+            const blocked = await blockedDateRepository.findById(req.params.id, tenantId);
             if (!blocked) {
                 return res.status(404).json({ success: false, error: 'NOT_FOUND', message: 'Période bloquée introuvable.' });
             }
-            await blockedDateRepository.delete(req.params.id);
+            await blockedDateRepository.delete(req.params.id, tenantId);
             res.json({ success: true, message: 'Période bloquée supprimée.' });
         } catch (error) {
             console.error('[AdminController] Delete blocked date error:', error);

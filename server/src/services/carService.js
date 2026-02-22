@@ -5,22 +5,22 @@ class CarService {
      * Get all AVAILABLE cars (for client-facing list).
      * Cars in MAINTENANCE status are excluded.
      */
-    async getAllCars() {
-        return await carRepository.findAllAvailable();
+    async getAllCars(tenantId) {
+        return await carRepository.findAllAvailable(tenantId);
     }
 
     /**
      * Get all cars including maintenance (for admin views).
      */
-    async getAllCarsAdmin() {
-        return await carRepository.findAll();
+    async getAllCarsAdmin(tenantId) {
+        return await carRepository.findAll(tenantId);
     }
 
     /**
      * Get a single car by ID.
      */
-    async getCarById(id) {
-        const car = await carRepository.findById(id);
+    async getCarById(id, tenantId) {
+        const car = await carRepository.findById(id, tenantId);
         if (!car) {
             throw new Error('Car not found');
         }
@@ -30,8 +30,8 @@ class CarService {
     /**
      * Get a car's availability data: car info + unavailable date ranges.
      */
-    async getCarAvailability(id) {
-        const car = await carRepository.findByIdWithAvailability(id);
+    async getCarAvailability(id, tenantId) {
+        const car = await carRepository.findByIdWithAvailability(id, tenantId);
         if (!car) {
             throw new Error('Car not found');
         }

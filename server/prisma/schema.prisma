@@ -9,12 +9,30 @@ datasource db {
 }
 
 model Company {
-  id        Int      @id @default(autoincrement())
-  name      String
-  adminUser String
-  cars      Car[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int              @id @default(autoincrement())
+  domainSlug   String           @unique
+  name         String
+  adminUser    String
+  settings     CompanySettings?
+  cars         Car[]
+  bookings     Booking[]
+  blockedDates BlockedDate[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+model CompanySettings {
+  id             Int     @id @default(autoincrement())
+  companyId      Int     @unique
+  company        Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  primaryColor   String  @default("#dc2626")
+  secondaryColor String  @default("#18181b")
+  logoUrl        String?
+  aboutText      String? @db.Text
+  contactEmail   String?
+  contactPhone   String?
+  address        String?
+  mapCoordinates String?
 }
 
 model Car {
@@ -24,10 +42,10 @@ model Car {
   pricePerDay  Float
   availability Boolean       @default(true)
   status       String        @default("AVAILABLE") // AVAILABLE, MAINTENANCE
-  category     String        @default("CONFORT")   // BUDGET, CONFORT, LUX
+  category     String        @default("CONFORT") // BUDGET, CONFORT, LUX
   version      Int           @default(1) // Optimistic locking field
   companyId    Int
-  company      Company       @relation(fields: [companyId], references: [id])
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   bookings     Booking[]
   blockedDates BlockedDate[]
   createdAt    DateTime      @default(now())
@@ -40,7 +58,9 @@ model BlockedDate {
   endDate   DateTime
   reason    String   @default("")
   carId     Int
-  car       Car      @relation(fields: [carId], references: [id])
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  companyId Int
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
 
@@ -53,7 +73,9 @@ model Booking {
   customerPhone String   @default("")
   customerEmail String   @default("")
   carId         Int
-  car           Car      @relation(fields: [carId], references: [id])
+  car           Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  companyId     Int
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

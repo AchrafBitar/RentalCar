@@ -8,7 +8,7 @@ class BookingService {
      * @param {object} data - { carId, startDate, endDate, customerName, customerPhone }
      * @param {object} files - { permis, cin }
      */
-    async createBooking(data, files) {
+    async createBooking(data, files, tenantId) {
         // --- Input Validation ---
         if (!data.carId || !data.startDate || !data.endDate) {
             throw new Error('VALIDATION_ERROR: carId, startDate, and endDate are required.');
@@ -32,7 +32,7 @@ class BookingService {
         // --- Transactional Booking (prevents double-booking) ---
         let booking;
         try {
-            booking = await bookingRepository.createWithTransaction(data);
+            booking = await bookingRepository.createWithTransaction(data, tenantId);
         } catch (error) {
             // Re-throw known business errors as-is
             if (['CAR_NOT_FOUND', 'CAR_UNAVAILABLE', 'DATE_CONFLICT', 'VERSION_CONFLICT'].includes(error.message)) {
@@ -76,7 +76,7 @@ class BookingService {
             // Manual rollback: IF file upload or email fails, delete the booking to maintain integrity
             if (booking && booking.id) {
                 try {
-                    await bookingRepository.delete(booking.id);
+                    await bookingRepository.delete(booking.id, tenantId);
                     console.info(`[BookingService] Successfully rolled back booking ${booking.id}`);
                 } catch (rollbackError) {
                     console.error('[BookingService] FATAL ERROR: Rollback failed for booking', booking.id, rollbackError);
@@ -90,8 +90,8 @@ class BookingService {
      * Confirm a pending booking and trigger notifications.
      * @param {number} bookingId
      */
-    async confirmBooking(bookingId) {
-        const booking = await bookingRepository.findById(bookingId);
+    async confirmBooking(bookingId, tenantId) {
+        const booking = await bookingRepository.findById(bookingId, tenantId);
 
         if (!booking) {
             throw new Error('BOOKING_NOT_FOUND');
@@ -101,7 +101,7 @@ class BookingService {
             throw new Error(`INVALID_STATUS: Cannot confirm a booking with status "${booking.status}".`);
         }
 
-        const confirmedBooking = await bookingRepository.updateStatus(bookingId, 'CONFIRMED');
+        const confirmedBooking = await bookingRepository.updateStatus(bookingId, 'CONFIRMED', tenantId);
 
         // Post-confirmation: WhatsApp notification removed in favor of direct client communication.
         // The administrator and client are notified via email (handled in confirmBooking/createBooking).
@@ -113,8 +113,8 @@ class BookingService {
      * Cancel a booking.
      * @param {number} bookingId
      */
-    async cancelBooking(bookingId) {
-        const booking = await bookingRepository.findById(bookingId);
+    async cancelBooking(bookingId, tenantId) {
+        const booking = await bookingRepository.findById(bookingId, tenantId);
 
         if (!booking) {
             throw new Error('BOOKING_NOT_FOUND');
@@ -124,14 +124,14 @@ class BookingService {
             throw new Error('INVALID_STATUS: Booking is already cancelled.');
         }
 
-        return await bookingRepository.updateStatus(bookingId, 'CANCELLED');
+        return await bookingRepository.updateStatus(bookingId, 'CANCELLED', tenantId);
     }
 
     /**
      * Get a single booking by ID.
      */
-    async getBookingById(bookingId) {
-        const booking = await bookingRepository.findById(bookingId);
+    async getBookingById(bookingId, tenantId) {
+        const booking = await bookingRepository.findById(bookingId, tenantId);
         if (!booking) {
             throw new Error('BOOKING_NOT_FOUND');
         }
@@ -141,14 +141,14 @@ class BookingService {
     /**
      * Get all bookings (for admin dashboard).
      */
-    async getAllBookings() {
-        return await bookingRepository.findAll();
+    async getAllBookings(tenantId) {
+        return await bookingRepository.findAll(tenantId);
     }
 
     /**
      * Admin-level booking creation (skips past-date check).
      */
-    async createBookingAdmin(data) {
+    async createBookingAdmin(data, tenantId) {
         if (!data.carId || !data.startDate || !data.endDate) {
             throw new Error('VALIDATION_ERROR: carId, startDate, and endDate are required.');
         }
@@ -165,7 +165,7 @@ class BookingService {
         }
 
         try {
-            const booking = await bookingRepository.createWithTransaction(data);
+            const booking = await bookingRepository.createWithTransaction(data, tenantId);
             return booking;
         } catch (error) {
             if (['CAR_NOT_FOUND', 'CAR_UNAVAILABLE', 'DATE_CONFLICT', 'VERSION_CONFLICT'].includes(error.message)) {
@@ -181,12 +181,12 @@ class BookingService {
     /**
      * Delete a booking permanently.
      */
-    async deleteBooking(bookingId) {
-        const booking = await bookingRepository.findById(bookingId);
+    async deleteBooking(bookingId, tenantId) {
+        const booking = await bookingRepository.findById(bookingId, tenantId);
         if (!booking) {
             throw new Error('BOOKING_NOT_FOUND');
         }
-        return await bookingRepository.delete(bookingId);
+        return await bookingRepository.delete(bookingId, tenantId);
     }
 }
 

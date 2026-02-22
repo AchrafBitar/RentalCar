@@ -12,7 +12,7 @@ const FloatingMap = () => {
                     {/* Header */}
                     <div className="flex items-center justify-between px-3 py-2 bg-zinc-900 text-white">
                         <span className="text-xs font-semibold flex items-center gap-1.5">
-                            <MapPin size={12} className="text-red-500" />
+                            <MapPin size={12} className="text-brand-primary" />
                             Exact Rent Car — Agdal, Rabat
                         </span>
                         <button
@@ -40,7 +40,7 @@ const FloatingMap = () => {
                 onClick={() => setExpanded(!expanded)}
                 className={`ml-auto flex items-center gap-2 px-4 py-3 shadow-lg transition-all duration-300 ${expanded
                         ? 'bg-zinc-900 text-white hover:bg-zinc-800'
-                        : 'bg-red-600 text-white hover:bg-red-700 shadow-red-600/30'
+                        : 'bg-brand-primary text-white hover:bg-brand-primary shadow-brand-primary'
                     }`}
             >
                 <MapPin size={18} />

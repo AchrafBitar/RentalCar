@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Fuel, Settings, Users, ArrowRight, Trophy, Crown, Sparkles, Wallet, Star } from 'lucide-react';
+import api from '../services/api';
 
 const CATEGORIES = [
     { key: 'ALL', label: 'Tous', icon: <Star size={16} /> },
@@ -15,16 +16,12 @@ const CarList = () => {
     const [activeCategory, setActiveCategory] = useState('ALL');
 
     useEffect(() => {
-        fetch(`${(import.meta.env.VITE_API_URL || 'http://localhost:3000/api')}/cars`)
-            .then(res => {
-                if (!res.ok) throw new Error('Network response was not ok');
-                return res.json();
-            })
-            .then(data => {
+        const fetchCars = async () => {
+            try {
+                const data = await api.get('/cars');
                 setCars(data);
                 setLoading(false);
-            })
-            .catch(err => {
+            } catch (err) {
                 console.warn("Failed to fetch cars, using mock data", err);
                 setCars([
                     { id: 1, model: "Mercedes-Benz C-Class", pricePerDay: 800, image: "https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2070&auto=format&fit=crop", availability: true, fuel: "Diesel", transmission: "Auto", seats: 5, category: "LUX", _count: { bookings: 12 } },
@@ -35,7 +32,10 @@ const CarList = () => {
                     { id: 6, model: "Volkswagen Passat", pricePerDay: 600, image: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=2070&auto=format&fit=crop", availability: true, fuel: "Diesel", transmission: "Auto", seats: 5, category: "CONFORT", _count: { bookings: 11 } },
                 ]);
                 setLoading(false);
-            });
+            }
+        };
+
+        fetchCars();
     }, []);
 
     // Best sellers: top 2 by booking count
@@ -53,7 +53,7 @@ const CarList = () => {
 
     if (loading) return (
         <div className="flex justify-center items-center py-40 min-h-screen bg-zinc-50">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-brand-primary"></div>
         </div>
     );
 
@@ -64,7 +64,7 @@ const CarList = () => {
                 {/* Page Header */}
                 <div className="text-center mb-12 md:mb-16">
                     <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-zinc-900 mb-4 font-display uppercase tracking-tight">Notre Flotte Exclusive</h2>
-                    <div className="w-24 h-1 bg-red-600 mx-auto mb-6"></div>
+                    <div className="w-24 h-1 bg-brand-primary mx-auto mb-6"></div>
                     <p className="text-zinc-500 max-w-2xl mx-auto font-light leading-relaxed text-sm md:text-base">
                         Choisissez parmi notre sélection de véhicules premium pour une expérience de conduite inégalée à Rabat.
                     </p>
@@ -102,7 +102,7 @@ const CarList = () => {
                             key={cat.key}
                             onClick={() => setActiveCategory(cat.key)}
                             className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all duration-200 whitespace-nowrap border ${activeCategory === cat.key
-                                ? 'bg-zinc-950 text-white border-zinc-950 shadow-lg'
+                                ? 'bg-brand-secondary text-white border-zinc-950 shadow-lg'
                                 : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:text-zinc-700'
                                 }`}
                         >
@@ -146,7 +146,7 @@ const BestSellerCard = ({ car, rank }) => (
         </div>
 
         {/* Booking count badge */}
-        <div className="absolute top-4 right-4 z-20 bg-zinc-950/80 backdrop-blur-md text-amber-400 px-3 py-1 text-xs font-bold">
+        <div className="absolute top-4 right-4 z-20 bg-brand-secondary/80 backdrop-blur-md text-amber-400 px-3 py-1 text-xs font-bold">
             {car._count?.bookings || 0} réservations
         </div>
 
@@ -191,11 +191,11 @@ const BestSellerCard = ({ car, rank }) => (
 /* ═══════════════════════════════════════════════════════════════════ */
 const CarCard = ({ car }) => (
     <div className="bg-white group hover:shadow-2xl transition-all duration-300 border border-zinc-200 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-full h-1 bg-red-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left z-10"></div>
+        <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left z-10"></div>
 
         <div className="h-56 sm:h-64 overflow-hidden relative">
             <img src={car.image || "https://via.placeholder.com/400x250"} alt={car.model} className="w-full h-full object-cover transform group-hover:scale-110 transition duration-700" />
-            <div className="absolute top-4 right-4 bg-zinc-950/90 backdrop-blur-md px-4 py-1 skew-x-[-10deg] text-white font-bold shadow-lg border border-white/10">
+            <div className="absolute top-4 right-4 bg-brand-secondary/90 backdrop-blur-md px-4 py-1 skew-x-[-10deg] text-white font-bold shadow-lg border border-white/10">
                 <span className="skew-x-[10deg] block">{car.pricePerDay} MAD<span className="text-xs font-normal text-zinc-300">/jour</span></span>
             </div>
             <div className="absolute top-4 left-4">
@@ -209,9 +209,9 @@ const CarCard = ({ car }) => (
             </div>
 
             <div className="flex justify-between items-center text-zinc-500 text-sm mb-8 border-b border-zinc-100 pb-6">
-                <div className="flex items-center gap-2"><Fuel size={16} className="text-red-600" /><span>{car.fuel || 'Essence'}</span></div>
-                <div className="flex items-center gap-2"><Settings size={16} className="text-red-600" /><span>{car.transmission || 'Auto'}</span></div>
-                <div className="flex items-center gap-2"><Users size={16} className="text-red-600" /><span>{car.seats || '5'} Places</span></div>
+                <div className="flex items-center gap-2"><Fuel size={16} className="text-brand-primary" /><span>{car.fuel || 'Essence'}</span></div>
+                <div className="flex items-center gap-2"><Settings size={16} className="text-brand-primary" /><span>{car.transmission || 'Auto'}</span></div>
+                <div className="flex items-center gap-2"><Users size={16} className="text-brand-primary" /><span>{car.seats || '5'} Places</span></div>
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -219,7 +219,7 @@ const CarCard = ({ car }) => (
                     {car.availability ? 'Disponible' : 'Réservé'}
                 </span>
                 {car.availability ? (
-                    <Link to={`/book/${car.id}`} className="bg-zinc-950 text-white px-6 py-3 skew-x-[-10deg] hover:bg-red-600 transition-colors font-medium shadow-lg flex items-center gap-2">
+                    <Link to={`/book/${car.id}`} className="bg-brand-secondary text-white px-6 py-3 skew-x-[-10deg] hover:bg-brand-primary transition-colors font-medium shadow-lg flex items-center gap-2">
                         <span className="skew-x-[10deg] flex items-center gap-2">Réserver <ArrowRight size={18} /></span>
                     </Link>
                 ) : (

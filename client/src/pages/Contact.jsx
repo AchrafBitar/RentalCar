@@ -8,8 +8,10 @@ import {
     Plane,
     Train,
 } from 'lucide-react';
+import { useTenant } from '../context/TenantContext';
 
 const Contact = () => {
+    const tenant = useTenant();
     return (
         <div className="min-h-screen bg-zinc-50 pt-28 pb-20">
             <div className="container mx-auto px-6 max-w-3xl">
@@ -18,10 +20,10 @@ const Contact = () => {
                 <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 font-display mb-2">
                     Contactez-Nous
                 </h1>
-                <p className="text-sm text-red-600 font-semibold uppercase tracking-widest mb-8">
-                    Exact Rent Car — Rabat Agdal
+                <p className="text-sm text-brand-primary font-semibold uppercase tracking-widest mb-8">
+                    {tenant?.company?.name || "Exact Rent Car"} — {tenant?.address ? tenant.address.split(',')[0] : "Rabat Agdal"}
                 </p>
-                <div className="w-16 h-1 bg-red-600 mb-10"></div>
+                <div className="w-16 h-1 bg-brand-primary mb-10"></div>
 
                 <p className="text-zinc-700 text-lg leading-relaxed mb-10">
                     Une question, un devis, une réservation ? Notre équipe est disponible
@@ -35,24 +37,24 @@ const Contact = () => {
                 </h2>
                 <ul className="space-y-5 mb-10">
                     <ContactItem
-                        icon={<MapPin className="text-red-600 flex-shrink-0" size={18} />}
+                        icon={<MapPin className="text-brand-primary flex-shrink-0" size={18} />}
                         label="Adresse"
-                        value="16 Avenue Fal Ould Oumeir, Appartement N°3, Agdal — Rabat"
+                        value={tenant?.address || "16 Avenue Fal Ould Oumeir, Appartement N°3, Agdal — Rabat"}
                     />
                     <ContactItem
-                        icon={<Phone className="text-red-600 flex-shrink-0" size={18} />}
+                        icon={<Phone className="text-brand-primary flex-shrink-0" size={18} />}
                         label="Téléphone"
-                        value={<a href="tel:+212663555666" className="text-red-600 hover:text-red-700 transition-colors">+212 6 63 55 56 66</a>}
+                        value={<a href={tenant?.contactPhone ? `tel:${tenant.contactPhone}` : "tel:+212663555666"} className="text-brand-primary hover:text-brand-primary transition-colors">{tenant?.contactPhone || "+212 6 63 55 56 66"}</a>}
                     />
                     <ContactItem
-                        icon={<MessageCircle className="text-red-600 flex-shrink-0" size={18} />}
+                        icon={<MessageCircle className="text-brand-primary flex-shrink-0" size={18} />}
                         label="WhatsApp"
-                        value={<a href="https://wa.me/212663555666" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700 transition-colors">Envoyez-nous un message</a>}
+                        value={<a href={tenant?.contactPhone ? `https://wa.me/${tenant.contactPhone.replace(/\+/g, '')}` : "https://wa.me/212663555666"} target="_blank" rel="noopener noreferrer" className="text-brand-primary hover:text-brand-primary transition-colors">Envoyez-nous un message</a>}
                     />
                     <ContactItem
-                        icon={<Mail className="text-red-600 flex-shrink-0" size={18} />}
+                        icon={<Mail className="text-brand-primary flex-shrink-0" size={18} />}
                         label="Email"
-                        value={<a href="mailto:contact@exactrentcar.ma" className="text-red-600 hover:text-red-700 transition-colors">contact@exactrentcar.ma</a>}
+                        value={<a href={tenant?.contactEmail ? `mailto:${tenant.contactEmail}` : "mailto:contact@exactrentcar.ma"} className="text-brand-primary hover:text-brand-primary transition-colors">{tenant?.contactEmail || "contact@exactrentcar.ma"}</a>}
                     />
                 </ul>
 
@@ -62,7 +64,7 @@ const Contact = () => {
                 </h2>
                 <ul className="space-y-3 mb-10">
                     <li className="flex items-start gap-3 text-zinc-700">
-                        <Clock className="text-red-600 flex-shrink-0 mt-0.5" size={18} />
+                        <Clock className="text-brand-primary flex-shrink-0 mt-0.5" size={18} />
                         <div>
                             <p><strong>Lundi — Vendredi :</strong> 08h00 – 19h00</p>
                             <p><strong>Samedi :</strong> 09h00 – 17h00</p>
@@ -82,11 +84,11 @@ const Contact = () => {
                 </h2>
                 <ul className="space-y-4 mb-8">
                     <li className="flex items-start gap-3 text-zinc-700 leading-relaxed">
-                        <Train className="text-red-600 flex-shrink-0 mt-0.5" size={18} />
+                        <Train className="text-brand-primary flex-shrink-0 mt-0.5" size={18} />
                         <span><strong>Depuis la Gare Rabat Agdal</strong> — À 5 minutes en voiture ou 10 minutes à pied. Nous pouvons vous retrouver directement à la gare.</span>
                     </li>
                     <li className="flex items-start gap-3 text-zinc-700 leading-relaxed">
-                        <Plane className="text-red-600 flex-shrink-0 mt-0.5" size={18} />
+                        <Plane className="text-brand-primary flex-shrink-0 mt-0.5" size={18} />
                         <span><strong>Depuis l'Aéroport Rabat-Salé (RBA)</strong> — Livraison au terminal disponible 24h/7j. Contactez-nous à l'avance pour organiser la remise.</span>
                     </li>
                 </ul>
@@ -94,8 +96,8 @@ const Contact = () => {
                 {/* ── Google Maps Embed ── */}
                 <div className="w-full aspect-video border border-zinc-200 mb-10">
                     <iframe
-                        title="Exact Rent Car — Agdal, Rabat"
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3307.5!2d-6.8498!3d33.9928!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzPCsDU5JzM0LjEiTiA2wrA1MCc1OS4zIlc!5e0!3m2!1sfr!2sma!4v1700000000000"
+                        title={`${tenant?.company?.name || "Exact Rent Car"} — ${tenant?.address || "Agdal, Rabat"}`}
+                        src={tenant?.mapCoordinates || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3307.5!2d-6.8498!3d33.9928!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzPCsDU5JzM0LjEiTiA2wrA1MCc1OS4zIlc!5e0!3m2!1sfr!2sma!4v1700000000000"}
                         className="w-full h-full"
                         style={{ border: 0 }}
                         allowFullScreen=""
@@ -111,10 +113,10 @@ const Contact = () => {
                         Envoyez-nous un message et recevez une réponse en quelques minutes.
                     </p>
                     <a
-                        href="https://wa.me/212663555666"
+                        href={tenant?.contactPhone ? `https://wa.me/${tenant.contactPhone.replace(/\+/g, '')}` : "https://wa.me/212663555666"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 transition-colors text-sm"
+                        className="inline-flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary text-white font-bold py-3 px-6 transition-colors text-sm"
                     >
                         <MessageCircle size={16} />
                         Ouvrir WhatsApp

@@ -24,7 +24,7 @@ function App() {
             <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
         </main>
-        <footer className="bg-zinc-950 text-white py-6 text-center border-t border-zinc-900">
+        <footer className="bg-brand-secondary text-white py-6 text-center border-t border-zinc-900">
           <p>&copy; 2026 Exact Rent Car. All rights reserved.</p>
         </footer>
       </div>

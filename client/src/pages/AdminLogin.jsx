@@ -46,8 +46,8 @@ const AdminLogin = () => {
 
                 {/* Logo / Header */}
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-zinc-950 flex items-center justify-center mx-auto mb-4">
-                        <Shield size={28} className="text-red-500" />
+                    <div className="w-16 h-16 bg-brand-secondary flex items-center justify-center mx-auto mb-4">
+                        <Shield size={28} className="text-brand-primary" />
                     </div>
                     <h1 className="text-3xl font-bold text-zinc-900 font-display uppercase tracking-tight">
                         Espace Admin
@@ -59,11 +59,11 @@ const AdminLogin = () => {
 
                 {/* Login Card */}
                 <div className="bg-white border border-zinc-200 shadow-xl overflow-hidden">
-                    <div className="h-1 bg-red-600"></div>
+                    <div className="h-1 bg-brand-primary"></div>
                     <div className="p-8">
 
                         {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-6 flex items-start gap-2 text-sm">
+                            <div className="bg-red-50 border border-brand-primary text-brand-primary px-4 py-3 mb-6 flex items-start gap-2 text-sm">
                                 <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
                                 <span>{error}</span>
                             </div>
@@ -81,7 +81,7 @@ const AdminLogin = () => {
                                         required
                                         autoComplete="username"
                                         placeholder="admin"
-                                        className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-brand-primary focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
                                         value={form.username}
                                         onChange={(e) => setForm({ ...form, username: e.target.value })}
                                     />
@@ -99,7 +99,7 @@ const AdminLogin = () => {
                                         required
                                         autoComplete="current-password"
                                         placeholder="••••••••"
-                                        className="w-full pl-10 pr-10 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
+                                        className="w-full pl-10 pr-10 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-brand-primary focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
                                         value={form.password}
                                         onChange={(e) => setForm({ ...form, password: e.target.value })}
                                     />
@@ -116,7 +116,7 @@ const AdminLogin = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`w-full bg-zinc-950 text-white font-bold py-3.5 shadow-lg hover:bg-red-600 hover:shadow-red-600/30 transition-all duration-300 skew-x-[-5deg] ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`w-full bg-brand-secondary text-white font-bold py-3.5 shadow-lg hover:bg-brand-primary hover:shadow-brand-primary transition-all duration-300 skew-x-[-5deg] ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <span className="skew-x-[5deg] text-sm flex items-center justify-center gap-2">
                                     {loading ? (

@@ -19,6 +19,7 @@ class BookingRepository {
         return await tx.booking.findMany({
             where: {
                 carId: parseInt(carId),
+                companyId: tenantId,
                 status: { not: 'CANCELLED' },
                 // Overlap condition: existing.start < new.end AND existing.end > new.start
                 startDate: { lt: new Date(endDate) },
@@ -31,11 +32,11 @@ class BookingRepository {
      * Atomic booking creation with optimistic locking.
      * Uses Prisma interactive transaction to prevent double-booking.
      */
-    async createWithTransaction(data) {
+    async createWithTransaction(data, tenantId) {
         return await prisma.$transaction(async (tx) => {
-            // 1. Read the car with its current version
-            const car = await tx.car.findUnique({
-                where: { id: parseInt(data.carId) },
+            // 1. Read the car with its current version and strict tenant scope
+            const car = await tx.car.findFirst({
+                where: { id: parseInt(data.carId), companyId: tenantId },
             });
 
             if (!car) {
@@ -48,12 +49,15 @@ class BookingRepository {
             }
 
             // 3. Check for overlapping bookings in the requested date range
-            const overlapping = await this.findOverlapping(
-                tx,
-                data.carId,
-                data.startDate,
-                data.endDate
-            );
+            const overlapping = await tx.booking.findMany({
+                where: {
+                    carId: parseInt(data.carId),
+                    companyId: tenantId,
+                    status: { not: 'CANCELLED' },
+                    startDate: { lt: new Date(data.endDate) },
+                    endDate: { gt: new Date(data.startDate) },
+                },
+            });
 
             if (overlapping.length > 0) {
                 throw new Error('DATE_CONFLICT');
@@ -63,6 +67,7 @@ class BookingRepository {
             const blockedOverlap = await tx.blockedDate.findFirst({
                 where: {
                     carId: parseInt(data.carId),
+                    companyId: tenantId,
                     startDate: { lt: new Date(data.endDate) },
                     endDate: { gt: new Date(data.startDate) },
                 },
@@ -77,6 +82,7 @@ class BookingRepository {
                 where: {
                     id: parseInt(data.carId),
                     version: car.version, // Only succeeds if version hasn't changed
+                    companyId: tenantId
                 },
                 data: { version: { increment: 1 } },
             });
@@ -85,7 +91,7 @@ class BookingRepository {
                 throw new Error('VERSION_CONFLICT');
             }
 
-            // 5. Create the booking atomically
+            // 5. Create the booking atomically attached to the company
             const booking = await this.createInTransaction(tx, {
                 startDate: new Date(data.startDate),
                 endDate: new Date(data.endDate),
@@ -94,6 +100,7 @@ class BookingRepository {
                 customerPhone: data.customerPhone || '',
                 customerEmail: data.customerEmail || '',
                 carId: parseInt(data.carId),
+                companyId: tenantId
             });
 
             return booking;
@@ -103,9 +110,9 @@ class BookingRepository {
     /**
      * Find a booking by ID with car and company details.
      */
-    async findById(id) {
-        return await prisma.booking.findUnique({
-            where: { id: parseInt(id) },
+    async findById(id, tenantId) {
+        return await prisma.booking.findFirst({
+            where: { id: parseInt(id), companyId: tenantId },
             include: {
                 car: { include: { company: true } },
             },
@@ -115,9 +122,9 @@ class BookingRepository {
     /**
      * Update booking status.
      */
-    async updateStatus(id, status) {
+    async updateStatus(id, status, tenantId) {
         return await prisma.booking.update({
-            where: { id: parseInt(id) },
+            where: { id: parseInt(id), companyId: tenantId },
             data: { status },
             include: {
                 car: { include: { company: true } },
@@ -128,8 +135,9 @@ class BookingRepository {
     /**
      * Fetch all bookings with car + company info (for admin calendar).
      */
-    async findAllWithDetails() {
+    async findAllWithDetails(tenantId) {
         return await prisma.booking.findMany({
+            where: { companyId: tenantId },
             include: {
                 car: { include: { company: true } },
             },
@@ -153,8 +161,9 @@ class BookingRepository {
     /**
      * Fetch all bookings ordered by most recent first.
      */
-    async findAll() {
+    async findAll(tenantId) {
         return await prisma.booking.findMany({
+            where: { companyId: tenantId },
             include: {
                 car: { include: { company: true } },
             },
@@ -165,7 +174,11 @@ class BookingRepository {
     /**
      * Delete a booking by ID.
      */
-    async delete(id) {
+    async delete(id, tenantId) {
+        // Find first because it's safer when we add multiple unique compound rules
+        const booking = await prisma.booking.findFirst({ where: { id: parseInt(id), companyId: tenantId } });
+        if (!booking) throw new Error('BOOKING_NOT_FOUND');
+
         return await prisma.booking.delete({
             where: { id: parseInt(id) },
         });

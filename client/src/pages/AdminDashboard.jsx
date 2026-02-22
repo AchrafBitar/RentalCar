@@ -7,8 +7,7 @@ import {
     Car, Wrench, CheckCircle, XCircle, RefreshCw, AlertTriangle,
     Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban, LogOut, Upload, Image, FileText
 } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import api from '../services/api';
 
 // ────────────────────────────────────────────────────────────
 // Reusable Modal Shell
@@ -20,7 +19,7 @@ const Modal = ({ open, onClose, title, children }) => {
             <div className="bg-white w-full max-w-lg mx-4 shadow-2xl border border-zinc-200 animate-in" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 bg-zinc-50">
                     <h3 className="text-lg font-bold text-zinc-900 uppercase tracking-wider font-display">{title}</h3>
-                    <button onClick={onClose} className="text-zinc-400 hover:text-red-600 transition-colors"><X size={20} /></button>
+                    <button onClick={onClose} className="text-zinc-400 hover:text-brand-primary transition-colors"><X size={20} /></button>
                 </div>
                 <div className="p-6">{children}</div>
             </div>
@@ -36,7 +35,7 @@ const StatusBadge = ({ status }) => {
         AVAILABLE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         MAINTENANCE: 'bg-orange-50 text-orange-700 border-orange-200',
         PENDING: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-        CONFIRMED: 'bg-red-50 text-red-700 border-red-200',
+        CONFIRMED: 'bg-red-50 text-brand-primary border-brand-primary',
         CANCELLED: 'bg-zinc-100 text-zinc-500 border-zinc-200',
     };
     return (
@@ -112,21 +111,21 @@ const AdminDashboard = () => {
             setError(null);
             const headers = { 'Authorization': `Bearer ${getToken()}` };
             const [calRes, carsRes, bookingsRes] = await Promise.all([
-                fetch(`${API_BASE}/admin/calendar`, { headers }),
-                fetch(`${API_BASE}/admin/cars`, { headers }),
-                fetch(`${API_BASE}/admin/bookings`, { headers }),
+                api.get('/admin/calendar', { headers }),
+                api.get('/admin/cars', { headers }),
+                api.get('/admin/bookings', { headers }),
             ]);
-            if (calRes.status === 401 || carsRes.status === 401 || bookingsRes.status === 401) {
-                handleUnauthorized(); return;
-            }
-            if (!calRes.ok || !carsRes.ok || !bookingsRes.ok) throw new Error('Erreur lors du chargement.');
-            const [calJson, carsJson, bookingsJson] = await Promise.all([calRes.json(), carsRes.json(), bookingsRes.json()]);
-            setEvents(calJson.data.events);
-            setCars(carsJson.data);
-            setBookings(bookingsJson.data);
+
+            setEvents(calRes.data.events);
+            setCars(carsRes.data);
+            setBookings(bookingsRes.data);
         } catch (err) {
             console.error('Fetch error:', err);
-            setError(err.message);
+            if (err.status === 401) {
+                handleUnauthorized();
+            } else {
+                setError(err.message || 'Erreur lors du chargement.');
+            }
         } finally {
             setLoading(false);
         }
@@ -148,21 +147,21 @@ const AdminDashboard = () => {
         setCarSaving(true);
         try {
             const url = carModal.mode === 'edit'
-                ? `${API_BASE}/admin/cars/${carModal.car.id}`
-                : `${API_BASE}/admin/cars`;
-            const method = carModal.mode === 'edit' ? 'PUT' : 'POST';
-            const res = await fetch(url, {
-                method,
-                headers: authHeaders(),
-                body: JSON.stringify(carForm),
-            });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
-            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+                ? `/admin/cars/${carModal.car.id}`
+                : `/admin/cars`;
+
+            if (carModal.mode === 'edit') {
+                await api.put(url, carForm, { headers: authHeaders() });
+            } else {
+                await api.post(url, carForm, { headers: authHeaders() });
+            }
+
             setCarModal({ open: false, mode: 'add', car: null });
             await fetchAll();
-        } catch { alert('Erreur réseau.'); }
-        finally { setCarSaving(false); }
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur.');
+        } finally { setCarSaving(false); }
     };
 
     // ─── Car Image Upload Handler ──────────────────────────────────────
@@ -173,42 +172,41 @@ const AdminDashboard = () => {
         try {
             const formData = new FormData();
             formData.append('image', file);
-            const res = await fetch(`${API_BASE}/admin/upload-car-image`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${getToken()}` },
-                body: formData,
+
+            const json = await api.post('/admin/upload-car-image', formData, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
             });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
+
             if (json.success) {
-                const baseUrl = API_BASE.replace('/api', '');
+                const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '');
                 setCarForm(prev => ({ ...prev, image: `${baseUrl}${json.imageUrl}` }));
             } else { alert(json.message || 'Erreur upload.'); }
-        } catch { alert('Erreur réseau lors de l\'upload.'); }
-        finally { setImageUploading(false); }
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau lors de l\'upload.');
+        } finally { setImageUploading(false); }
     };
 
     const deleteCar = async (id) => {
         if (!confirm('Supprimer ce véhicule et toutes ses réservations ?')) return;
         try {
-            const res = await fetch(`${API_BASE}/admin/cars/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
-            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await api.delete(`/admin/cars/${id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             await fetchAll();
-        } catch { alert('Erreur réseau.'); }
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau.');
+        }
     };
 
     const toggleMaintenance = async (carId) => {
         setTogglingId(carId);
         try {
-            const res = await fetch(`${API_BASE}/admin/cars/${carId}/maintenance`, { method: 'PUT', headers: { 'Authorization': `Bearer ${getToken()}` } });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
-            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await api.put(`/admin/cars/${carId}/maintenance`, {}, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             await fetchAll();
-        } catch { alert('Erreur réseau.'); }
-        finally { setTogglingId(null); }
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau.');
+        } finally { setTogglingId(null); }
     };
 
     // ─── Blocked Dates Handlers ────────────────────────────────
@@ -217,59 +215,53 @@ const AdminDashboard = () => {
         setBlockedForm({ startDate: '', endDate: '', reason: '' });
         setBlockedLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/cars/${car.id}/blocked-dates`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-            const json = await res.json();
-            setBlockedDates(json.data || []);
-        } catch { setBlockedDates([]); }
-        finally { setBlockedLoading(false); }
+            const res = await api.get(`/admin/cars/${car.id}/blocked-dates`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+            setBlockedDates(res.data || []);
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            setBlockedDates([]);
+        } finally { setBlockedLoading(false); }
     };
 
     const saveBlockedDate = async () => {
         setBlockedSaving(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/cars/${blockedModal.carId}/blocked-dates`, {
-                method: 'POST',
-                headers: authHeaders(),
-                body: JSON.stringify(blockedForm),
+            await api.post(`/admin/cars/${blockedModal.carId}/blocked-dates`, blockedForm, {
+                headers: authHeaders()
             });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
-            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+
             setBlockedForm({ startDate: '', endDate: '', reason: '' });
+
             // Refresh list
-            const res2 = await fetch(`${API_BASE}/admin/cars/${blockedModal.carId}/blocked-dates`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-            const json2 = await res2.json();
-            setBlockedDates(json2.data || []);
-        } catch { alert('Erreur réseau.'); }
-        finally { setBlockedSaving(false); }
+            const res2 = await api.get(`/admin/cars/${blockedModal.carId}/blocked-dates`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+            setBlockedDates(res2.data || []);
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau.');
+        } finally { setBlockedSaving(false); }
     };
 
     const deleteBlockedDate = async (id) => {
         if (!confirm('Supprimer cette période bloquée ?')) return;
         try {
-            const res = await fetch(`${API_BASE}/admin/blocked-dates/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
-            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await api.delete(`/admin/blocked-dates/${id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             setBlockedDates(prev => prev.filter(d => d.id !== id));
-        } catch { alert('Erreur réseau.'); }
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau.');
+        }
     };
 
     // ─── Document Viewer ──────────────────────────────────────────
     const openDocsModal = async (bookingId) => {
         setDocsModal({ open: true, bookingId, documents: [], loading: true });
         try {
-            const res = await fetch(`${API_BASE}/admin/bookings/${bookingId}/documents`, { headers: authHeaders() });
-            const json = await res.json();
-            if (res.ok) {
-                setDocsModal(prev => ({ ...prev, documents: json.data || [], loading: false }));
-            } else {
-                setDocsModal(prev => ({ ...prev, loading: false }));
-                alert(json.message);
-            }
-        } catch {
+            const res = await api.get(`/admin/bookings/${bookingId}/documents`, { headers: authHeaders() });
+            setDocsModal(prev => ({ ...prev, documents: res.data || [], loading: false }));
+        } catch (err) {
             setDocsModal(prev => ({ ...prev, loading: false }));
-            alert('Erreur réseau.');
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau.');
         }
     };
 
@@ -282,49 +274,44 @@ const AdminDashboard = () => {
     const saveBooking = async () => {
         setBookingSaving(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/bookings`, {
-                method: 'POST',
-                headers: authHeaders(),
-                body: JSON.stringify(bookingForm),
-            });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
-            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await api.post(`/admin/bookings`, bookingForm, { headers: authHeaders() });
             setBookingModal(false);
             await fetchAll();
-        } catch { alert('Erreur réseau.'); }
-        finally { setBookingSaving(false); }
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau.');
+        } finally { setBookingSaving(false); }
     };
 
     const confirmBooking = async (id) => {
         try {
-            const res = await fetch(`${API_BASE}/admin/bookings/${id}/confirm`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${getToken()}` } });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
-            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await api.patch(`/admin/bookings/${id}/confirm`, {}, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             await fetchAll();
-        } catch { alert('Erreur réseau.'); }
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau.');
+        }
     };
 
     const cancelBooking = async (id) => {
         try {
-            const res = await fetch(`${API_BASE}/admin/bookings/${id}/cancel`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${getToken()}` } });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
-            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await api.patch(`/admin/bookings/${id}/cancel`, {}, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             await fetchAll();
-        } catch { alert('Erreur réseau.'); }
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau.');
+        }
     };
 
     const deleteBooking = async (id) => {
         if (!confirm('Supprimer définitivement cette réservation ?')) return;
         try {
-            const res = await fetch(`${API_BASE}/admin/bookings/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
-            if (res.status === 401) { handleUnauthorized(); return; }
-            const json = await res.json();
-            if (!res.ok) { alert(json.message || 'Erreur.'); return; }
+            await api.delete(`/admin/bookings/${id}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             await fetchAll();
-        } catch { alert('Erreur réseau.'); }
+        } catch (err) {
+            if (err.status === 401) handleUnauthorized();
+            else alert(err.message || 'Erreur réseau.');
+        }
     };
 
     // ─── Filtered Data ─────────────────────────────────────────
@@ -341,14 +328,14 @@ const AdminDashboard = () => {
     // ─── Tab Style Helper ──────────────────────────────────────
     const tabClass = (tab) =>
         `flex items-center gap-2 px-5 py-3 text-sm font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer border-b-2 ${activeTab === tab
-            ? 'border-red-600 text-red-600 bg-white'
+            ? 'border-brand-primary text-brand-primary bg-white'
             : 'border-transparent text-zinc-400 hover:text-zinc-600 hover:border-zinc-300'
         }`;
 
     // ─── Loading ────────────────────────────────────────────────
     if (loading) return (
         <div className="flex justify-center items-center py-40 min-h-screen bg-zinc-100">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-brand-primary"></div>
         </div>
     );
 
@@ -359,7 +346,7 @@ const AdminDashboard = () => {
                 {/* Header */}
                 <div className="mb-6 md:mb-8">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-red-600 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 bg-brand-primary flex items-center justify-center flex-shrink-0">
                             <Calendar size={20} className="text-white" />
                         </div>
                         <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-zinc-900 font-display uppercase tracking-tight">
@@ -372,7 +359,7 @@ const AdminDashboard = () => {
                         </p>
                         <button
                             onClick={logout}
-                            className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-bold uppercase tracking-wider text-zinc-500 hover:text-red-600 hover:bg-red-50 transition-all border border-zinc-200"
+                            className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-bold uppercase tracking-wider text-zinc-500 hover:text-brand-primary hover:bg-red-50 transition-all border border-zinc-200"
                         >
                             <LogOut size={14} /> Déconnexion
                         </button>
@@ -399,7 +386,7 @@ const AdminDashboard = () => {
                     </button>
                     <button
                         onClick={fetchAll}
-                        className="ml-auto flex items-center gap-1 md:gap-2 px-2 md:px-4 text-xs md:text-sm text-zinc-400 hover:text-red-600 transition-colors flex-shrink-0"
+                        className="ml-auto flex items-center gap-1 md:gap-2 px-2 md:px-4 text-xs md:text-sm text-zinc-400 hover:text-brand-primary transition-colors flex-shrink-0"
                     >
                         <RefreshCw size={14} /> <span className="hidden sm:inline">Rafraîchir</span>
                     </button>
@@ -417,7 +404,7 @@ const AdminDashboard = () => {
                                 <span className="text-sm text-zinc-600">Disponible</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="w-4 h-4 bg-red-500 rounded-sm inline-block"></span>
+                                <span className="w-4 h-4 bg-brand-primary rounded-sm inline-block"></span>
                                 <span className="text-sm text-zinc-600">Réservé (Confirmé)</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -458,7 +445,7 @@ const AdminDashboard = () => {
                             {/* Vehicle Sidebar */}
                             <div className="lg:col-span-1 space-y-4">
                                 <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-wider font-display flex items-center gap-2">
-                                    <Car size={20} className="text-red-600" />
+                                    <Car size={20} className="text-brand-primary" />
                                     Véhicules
                                 </h2>
                                 {cars.map((car) => {
@@ -517,12 +504,12 @@ const AdminDashboard = () => {
                                     placeholder="Rechercher un véhicule..."
                                     value={carSearch}
                                     onChange={e => setCarSearch(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                    className="w-full pl-10 pr-4 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors"
                                 />
                             </div>
                             <button
                                 onClick={() => openCarModal('add')}
-                                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors"
+                                className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary text-white px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors"
                             >
                                 <Plus size={16} /> Ajouter un véhicule
                             </button>
@@ -585,7 +572,7 @@ const AdminDashboard = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => deleteCar(car.id)}
-                                                        className="p-1.5 rounded text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                        className="p-1.5 rounded text-zinc-400 hover:text-brand-primary hover:bg-red-50 transition-colors"
                                                         title="Supprimer"
                                                     >
                                                         <Trash2 size={16} />
@@ -620,12 +607,12 @@ const AdminDashboard = () => {
                                     placeholder="Rechercher une réservation..."
                                     value={bookingSearch}
                                     onChange={e => setBookingSearch(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-4 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                    className="w-full pl-10 pr-4 py-4 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors"
                                 />
                             </div>
                             <button
                                 onClick={openBookingModal}
-                                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors"
+                                className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary text-white px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors"
                             >
                                 <Plus size={16} /> Ajouter une réservation
                             </button>
@@ -693,7 +680,7 @@ const AdminDashboard = () => {
                                                     )}
                                                     <button
                                                         onClick={() => deleteBooking(b.id)}
-                                                        className="p-1.5 rounded text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                        className="p-1.5 rounded text-zinc-400 hover:text-brand-primary hover:bg-red-50 transition-colors"
                                                         title="Supprimer"
                                                     >
                                                         <Trash2 size={16} />
@@ -730,7 +717,7 @@ const AdminDashboard = () => {
                             type="text"
                             value={carForm.model}
                             onChange={e => setCarForm({ ...carForm, model: e.target.value })}
-                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors"
                             placeholder="Ex: Mercedes-Benz C-Class"
                         />
                     </div>
@@ -742,7 +729,7 @@ const AdminDashboard = () => {
                                 <button
                                     type="button"
                                     onClick={() => setCarForm({ ...carForm, image: '' })}
-                                    className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute top-2 right-2 bg-brand-primary text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <X size={14} />
                                 </button>
@@ -753,11 +740,11 @@ const AdminDashboard = () => {
                                 onDragLeave={() => setDragOver(false)}
                                 onDrop={(e) => { e.preventDefault(); setDragOver(false); uploadCarImage(e.dataTransfer.files[0]); }}
                                 onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = (e) => uploadCarImage(e.target.files[0]); inp.click(); }}
-                                className={`w-full h-40 border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${dragOver ? 'border-red-500 bg-red-50' : 'border-zinc-300 hover:border-zinc-400 bg-zinc-50'
+                                className={`w-full h-40 border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${dragOver ? 'border-brand-primary bg-red-50' : 'border-zinc-300 hover:border-zinc-400 bg-zinc-50'
                                     }`}
                             >
                                 {imageUploading ? (
-                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-600"></div>
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-primary"></div>
                                 ) : (
                                     <>
                                         <Upload size={24} className="text-zinc-400 mb-2" />
@@ -775,7 +762,7 @@ const AdminDashboard = () => {
                                 type="number"
                                 value={carForm.pricePerDay}
                                 onChange={e => setCarForm({ ...carForm, pricePerDay: e.target.value })}
-                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors"
                                 placeholder="800"
                             />
                         </div>
@@ -785,7 +772,7 @@ const AdminDashboard = () => {
                                 type="number"
                                 value={carForm.companyId}
                                 onChange={e => setCarForm({ ...carForm, companyId: e.target.value })}
-                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors"
                                 placeholder="1"
                             />
                         </div>
@@ -795,7 +782,7 @@ const AdminDashboard = () => {
                         <select
                             value={carForm.category}
                             onChange={e => setCarForm({ ...carForm, category: e.target.value })}
-                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors bg-white"
+                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors bg-white"
                         >
                             <option value="BUDGET">Budget</option>
                             <option value="CONFORT">Confort</option>
@@ -812,7 +799,7 @@ const AdminDashboard = () => {
                         <button
                             onClick={saveCar}
                             disabled={carSaving || !carForm.model || !carForm.pricePerDay || !carForm.companyId}
-                            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-6 py-2 bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {carSaving ? 'Enregistrement...' : carModal.mode === 'edit' ? 'Mettre à jour' : 'Ajouter'}
                         </button>
@@ -834,7 +821,7 @@ const AdminDashboard = () => {
                         <select
                             value={bookingForm.carId}
                             onChange={e => setBookingForm({ ...bookingForm, carId: e.target.value })}
-                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors bg-white"
+                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors bg-white"
                         >
                             <option value="">Sélectionner...</option>
                             {cars.filter(c => c.status === 'AVAILABLE').map(c => (
@@ -849,7 +836,7 @@ const AdminDashboard = () => {
                                 type="date"
                                 value={bookingForm.startDate}
                                 onChange={e => setBookingForm({ ...bookingForm, startDate: e.target.value })}
-                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors"
                             />
                         </div>
                         <div>
@@ -858,7 +845,7 @@ const AdminDashboard = () => {
                                 type="date"
                                 value={bookingForm.endDate}
                                 onChange={e => setBookingForm({ ...bookingForm, endDate: e.target.value })}
-                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors"
                             />
                         </div>
                     </div>
@@ -869,7 +856,7 @@ const AdminDashboard = () => {
                                 type="text"
                                 value={bookingForm.customerName}
                                 onChange={e => setBookingForm({ ...bookingForm, customerName: e.target.value })}
-                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors"
                                 placeholder="Ahmed"
                             />
                         </div>
@@ -879,7 +866,7 @@ const AdminDashboard = () => {
                                 type="text"
                                 value={bookingForm.customerPhone}
                                 onChange={e => setBookingForm({ ...bookingForm, customerPhone: e.target.value })}
-                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors"
                                 placeholder="+212 6XX XXX XXX"
                             />
                         </div>
@@ -889,7 +876,7 @@ const AdminDashboard = () => {
                         <select
                             value={bookingForm.status}
                             onChange={e => setBookingForm({ ...bookingForm, status: e.target.value })}
-                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors bg-white"
+                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary transition-colors bg-white"
                         >
                             <option value="PENDING">En attente</option>
                             <option value="CONFIRMED">Confirmé</option>
@@ -905,7 +892,7 @@ const AdminDashboard = () => {
                         <button
                             onClick={saveBooking}
                             disabled={bookingSaving || !bookingForm.carId || !bookingForm.startDate || !bookingForm.endDate}
-                            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-6 py-2 bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {bookingSaving ? 'Enregistrement...' : 'Ajouter'}
                         </button>
@@ -941,7 +928,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <button
                                             onClick={() => deleteBlockedDate(bd.id)}
-                                            className="text-zinc-400 hover:text-red-600 transition-colors"
+                                            className="text-zinc-400 hover:text-brand-primary transition-colors"
                                         >
                                             <Trash2 size={14} />
                                         </button>
@@ -961,7 +948,7 @@ const AdminDashboard = () => {
                                     type="date"
                                     value={blockedForm.startDate}
                                     onChange={e => setBlockedForm({ ...blockedForm, startDate: e.target.value })}
-                                    className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500"
+                                    className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary"
                                 />
                             </div>
                             <div>
@@ -970,7 +957,7 @@ const AdminDashboard = () => {
                                     type="date"
                                     value={blockedForm.endDate}
                                     onChange={e => setBlockedForm({ ...blockedForm, endDate: e.target.value })}
-                                    className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500"
+                                    className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary"
                                 />
                             </div>
                         </div>
@@ -980,7 +967,7 @@ const AdminDashboard = () => {
                                 type="text"
                                 value={blockedForm.reason}
                                 onChange={e => setBlockedForm({ ...blockedForm, reason: e.target.value })}
-                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500"
+                                className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-brand-primary"
                                 placeholder="Ex: Entretien préventif"
                             />
                         </div>
@@ -994,7 +981,7 @@ const AdminDashboard = () => {
                             <button
                                 onClick={saveBlockedDate}
                                 disabled={blockedSaving || !blockedForm.startDate || !blockedForm.endDate}
-                                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-6 py-2 bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {blockedSaving ? 'Enregistrement...' : 'Bloquer'}
                             </button>
@@ -1026,7 +1013,7 @@ const AdminDashboard = () => {
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-3 p-3 border border-zinc-200 rounded hover:bg-zinc-50 transition-colors"
                                 >
-                                    <FileText className="text-red-600" size={24} />
+                                    <FileText className="text-brand-primary" size={24} />
                                     <span className="text-sm font-medium text-zinc-800 break-all">{url.split('/').pop()}</span>
                                 </a>
                             ))}

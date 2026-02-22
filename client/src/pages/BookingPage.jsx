@@ -4,8 +4,7 @@ import { Calendar, User, Phone, ArrowLeft, AlertTriangle, Car, MapPin, Upload, F
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import api from '../services/api';
 
 const BookingPage = () => {
     const { carId } = useParams();
@@ -36,13 +35,11 @@ const BookingPage = () => {
     useEffect(() => {
         const fetchAvailability = async () => {
             try {
-                const res = await fetch(`${API_BASE}/cars/${carId}/availability`);
-                if (!res.ok) throw new Error('Véhicule introuvable.');
-                const data = await res.json();
+                const data = await api.get(`/cars/${carId}/availability`);
                 setCarData(data.car);
                 setUnavailableDates(data.unavailableDates);
             } catch (err) {
-                setError(err.message);
+                setError(err.message || 'Véhicule introuvable.');
             } finally {
                 setLoading(false);
             }
@@ -187,23 +184,15 @@ const BookingPage = () => {
             submitData.append('permis', files.permis);
             submitData.append('cin', files.cin);
 
-            const res = await fetch(`${API_BASE}/bookings`, {
-                method: 'POST',
-                // Note: when using FormData, do not set Content-Type header.
-                // The browser will automatically set it to multipart/form-data with the correct boundary.
-                body: submitData,
-            });
+            const json = await api.post('/bookings', submitData);
 
-            const json = await res.json();
-
-            if (!res.ok) {
-                setError(json.message || 'Une erreur est survenue.');
-                return;
+            if (json.success) {
+                setBookingSuccess(true);
+            } else {
+                setError(json.message || 'La réservation a échoué.');
             }
-
-            setBookingSuccess(true);
         } catch (err) {
-            setError('Erreur réseau. Veuillez vérifier votre connexion et réessayer.');
+            setError(err.message || 'Une erreur est survenue lors de la communication avec le serveur.');
         } finally {
             setSubmitting(false);
         }
@@ -211,7 +200,7 @@ const BookingPage = () => {
 
     if (loading) return (
         <div className="flex justify-center items-center py-40 min-h-screen bg-zinc-50">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-brand-primary"></div>
         </div>
     );
 
@@ -252,7 +241,7 @@ const BookingPage = () => {
 
                     <button
                         onClick={() => navigate('/cars')}
-                        className="inline-flex items-center gap-2 bg-zinc-950 text-white font-bold py-4 px-8 uppercase tracking-wider text-sm shadow-xl hover:bg-red-600 hover:shadow-red-600/30 transition-all duration-300 transform skew-x-[-10deg]"
+                        className="inline-flex items-center gap-2 bg-brand-secondary text-white font-bold py-4 px-8 uppercase tracking-wider text-sm shadow-xl hover:bg-brand-primary hover:shadow-brand-primary transition-all duration-300 transform skew-x-[-10deg]"
                     >
                         <span className="skew-x-[10deg]">Retourner aux véhicules</span>
                     </button>
@@ -271,7 +260,7 @@ const BookingPage = () => {
                 {/* Car Info Header */}
                 {carData && (
                     <div className="bg-white border border-zinc-200 shadow-lg mb-8 overflow-hidden relative">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-red-600 z-10"></div>
+                        <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary z-10"></div>
                         <div className="flex flex-col md:flex-row">
                             <div className="md:w-1/3 h-48 md:h-auto overflow-hidden">
                                 <img
@@ -281,7 +270,7 @@ const BookingPage = () => {
                                 />
                             </div>
                             <div className="md:w-2/3 p-8 flex flex-col justify-center">
-                                <div className="flex items-center gap-2 text-red-600 text-sm font-bold uppercase tracking-wider mb-2">
+                                <div className="flex items-center gap-2 text-brand-primary text-sm font-bold uppercase tracking-wider mb-2">
                                     <Car size={16} />
                                     <span>{carData.company?.name || 'Location'}</span>
                                 </div>
@@ -312,7 +301,7 @@ const BookingPage = () => {
                                     <span className="text-zinc-600">Disponible</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
-                                    <span className="w-3 h-3 bg-red-600 rounded-sm inline-block"></span>
+                                    <span className="w-3 h-3 bg-brand-primary rounded-sm inline-block"></span>
                                     <span className="text-zinc-600">Réservé</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
@@ -354,11 +343,11 @@ const BookingPage = () => {
                     {/* Booking Form - 1 column */}
                     <div className="lg:col-span-1">
                         <div className="bg-white border border-zinc-200 shadow-lg p-6 sticky top-24">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
+                            <div className="absolute top-0 left-0 w-1 h-full bg-brand-primary"></div>
                             <h2 className="text-xl font-display font-bold text-zinc-900 uppercase tracking-wide mb-6">Réservation</h2>
 
                             {error && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-6 flex items-start gap-2 text-sm">
+                                <div className="bg-red-50 border border-brand-primary text-brand-primary px-4 py-3 mb-6 flex items-start gap-2 text-sm">
                                     <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
                                     <span>{error}</span>
                                 </div>
@@ -383,7 +372,7 @@ const BookingPage = () => {
 
                                 {/* Duration + Price */}
                                 {formData.startDate && formData.endDate && carData && (
-                                    <div className="bg-zinc-950 text-white p-4 -mx-6 px-6">
+                                    <div className="bg-brand-secondary text-white p-4 -mx-6 px-6">
                                         <div className="flex justify-between items-center">
                                             <span className="text-zinc-400 text-sm">
                                                 {Math.ceil((new Date(formData.endDate) - new Date(formData.startDate)) / (1000 * 60 * 60 * 24))} jours
@@ -403,7 +392,7 @@ const BookingPage = () => {
                                             type="text"
                                             placeholder="Votre nom"
                                             required
-                                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-brand-primary focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
                                             value={formData.customerName}
                                             onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                                         />
@@ -418,7 +407,7 @@ const BookingPage = () => {
                                             type="tel"
                                             placeholder="+212 6XX XXX XXX"
                                             required
-                                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-brand-primary focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
                                             value={formData.customerPhone}
                                             onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                                         />
@@ -433,7 +422,7 @@ const BookingPage = () => {
                                             type="email"
                                             placeholder="votre@email.com"
                                             required
-                                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-brand-primary focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
                                             value={formData.customerEmail}
                                             onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                                         />
@@ -455,7 +444,7 @@ const BookingPage = () => {
                                             />
                                             <label
                                                 htmlFor="permisFile"
-                                                className={`flex items-center justify-between w-full px-4 py-3 border-2 border-dashed cursor-pointer transition-all ${files.permis ? 'border-emerald-500 bg-emerald-50' : 'border-zinc-300 bg-zinc-50 hover:border-red-500 hover:bg-red-50'}`}
+                                                className={`flex items-center justify-between w-full px-4 py-3 border-2 border-dashed cursor-pointer transition-all ${files.permis ? 'border-emerald-500 bg-emerald-50' : 'border-zinc-300 bg-zinc-50 hover:border-brand-primary hover:bg-red-50'}`}
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <FileText className={files.permis ? 'text-emerald-500' : 'text-zinc-400'} size={20} />
@@ -481,7 +470,7 @@ const BookingPage = () => {
                                             />
                                             <label
                                                 htmlFor="cinFile"
-                                                className={`flex items-center justify-between w-full px-4 py-3 border-2 border-dashed cursor-pointer transition-all ${files.cin ? 'border-emerald-500 bg-emerald-50' : 'border-zinc-300 bg-zinc-50 hover:border-red-500 hover:bg-red-50'}`}
+                                                className={`flex items-center justify-between w-full px-4 py-3 border-2 border-dashed cursor-pointer transition-all ${files.cin ? 'border-emerald-500 bg-emerald-50' : 'border-zinc-300 bg-zinc-50 hover:border-brand-primary hover:bg-red-50'}`}
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <FileText className={files.cin ? 'text-emerald-500' : 'text-zinc-400'} size={20} />
@@ -498,7 +487,7 @@ const BookingPage = () => {
                                 <button
                                     type="submit"
                                     disabled={submitting || !formData.startDate || !formData.endDate || !files.permis || !files.cin}
-                                    className={`w-full bg-zinc-950 text-white font-bold py-3.5 shadow-lg hover:bg-red-600 hover:shadow-red-600/30 transition-all duration-300 transform rounded-none skew-x-[-5deg] ${submitting || !formData.startDate || !formData.endDate || !files.permis || !files.cin ? 'opacity-50 cursor-not-allowed hover:bg-zinc-950 hover:shadow-none' : ''} flex items-center justify-center`}
+                                    className={`w-full bg-brand-secondary text-white font-bold py-3.5 shadow-lg hover:bg-brand-primary hover:shadow-brand-primary transition-all duration-300 transform rounded-none skew-x-[-5deg] ${submitting || !formData.startDate || !formData.endDate || !files.permis || !files.cin ? 'opacity-50 cursor-not-allowed hover:bg-brand-secondary hover:shadow-none' : ''} flex items-center justify-center`}
                                 >
                                     {submitting ? (
                                         <div className="flex items-center gap-2 skew-x-[5deg]">
