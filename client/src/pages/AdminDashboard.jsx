@@ -82,7 +82,7 @@ const AdminDashboard = () => {
 
     // Car modal state
     const [carModal, setCarModal] = useState({ open: false, mode: 'add', car: null });
-    const [carForm, setCarForm] = useState({ model: '', image: '', pricePerDay: '', companyId: '1' });
+    const [carForm, setCarForm] = useState({ model: '', image: '', pricePerDay: '', companyId: '1', category: 'CONFORT' });
     const [carSaving, setCarSaving] = useState(false);
 
     // Booking modal state
@@ -133,9 +133,9 @@ const AdminDashboard = () => {
     const openCarModal = (mode, car = null) => {
         setCarModal({ open: true, mode, car });
         if (mode === 'edit' && car) {
-            setCarForm({ model: car.model, image: car.image || '', pricePerDay: String(car.pricePerDay), companyId: String(car.companyId) });
+            setCarForm({ model: car.model, image: car.image || '', pricePerDay: String(car.pricePerDay), companyId: String(car.companyId), category: car.category || 'CONFORT' });
         } else {
-            setCarForm({ model: '', image: '', pricePerDay: '', companyId: '1' });
+            setCarForm({ model: '', image: '', pricePerDay: '', companyId: '1', category: 'CONFORT' });
         }
     };
 
@@ -489,6 +489,7 @@ const AdminDashboard = () => {
                                     <tr className="bg-zinc-50 border-b border-zinc-200">
                                         <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">ID</th>
                                         <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Modèle</th>
+                                        <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Catégorie</th>
                                         <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Prix/Jour</th>
                                         <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Statut</th>
                                         <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Compagnie</th>
@@ -500,6 +501,12 @@ const AdminDashboard = () => {
                                         <tr key={car.id} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
                                             <td className="px-4 py-3 text-sm text-zinc-400 font-mono">#{car.id}</td>
                                             <td className="px-4 py-3 text-sm font-bold text-zinc-900">{car.model}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${(car.category || 'CONFORT') === 'LUX' ? 'bg-amber-100 text-amber-700' :
+                                                        (car.category || 'CONFORT') === 'BUDGET' ? 'bg-emerald-100 text-emerald-700' :
+                                                            'bg-blue-100 text-blue-700'
+                                                    }`}>{car.category || 'CONFORT'}</span>
+                                            </td>
                                             <td className="px-4 py-3 text-sm text-zinc-600">{car.pricePerDay} MAD</td>
                                             <td className="px-4 py-3"><StatusBadge status={car.status} /></td>
                                             <td className="px-4 py-3 text-sm text-zinc-500">{car.company?.name || '—'}</td>
@@ -697,6 +704,18 @@ const AdminDashboard = () => {
                                 placeholder="1"
                             />
                         </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Catégorie</label>
+                        <select
+                            value={carForm.category}
+                            onChange={e => setCarForm({ ...carForm, category: e.target.value })}
+                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors bg-white"
+                        >
+                            <option value="BUDGET">Budget</option>
+                            <option value="CONFORT">Confort</option>
+                            <option value="LUX">Lux</option>
+                        </select>
                     </div>
                     <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100">
                         <button

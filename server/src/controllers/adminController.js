@@ -59,7 +59,7 @@ class AdminController {
 
     async createCar(req, res) {
         try {
-            const { model, image, pricePerDay, companyId } = req.body;
+            const { model, image, pricePerDay, companyId, category } = req.body;
             if (!model || !pricePerDay || !companyId) {
                 return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'model, pricePerDay, et companyId sont requis.' });
             }
@@ -68,6 +68,7 @@ class AdminController {
                 image: image || null,
                 pricePerDay: parseFloat(pricePerDay),
                 companyId: parseInt(companyId),
+                ...(category && { category }),
             });
             res.status(201).json({ success: true, data: car, message: 'Véhicule ajouté avec succès.' });
         } catch (error) {
@@ -79,11 +80,12 @@ class AdminController {
     async updateCar(req, res) {
         try {
             const updateData = {};
-            const { model, image, pricePerDay, companyId } = req.body;
+            const { model, image, pricePerDay, companyId, category } = req.body;
             if (model !== undefined) updateData.model = model;
             if (image !== undefined) updateData.image = image;
             if (pricePerDay !== undefined) updateData.pricePerDay = parseFloat(pricePerDay);
             if (companyId !== undefined) updateData.companyId = parseInt(companyId);
+            if (category !== undefined) updateData.category = category;
 
             const car = await carService.updateCar(req.params.id, updateData);
             res.json({ success: true, data: car, message: 'Véhicule mis à jour.' });

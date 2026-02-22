@@ -23,6 +23,7 @@ model Car {
   pricePerDay  Float
   availability Boolean       @default(true)
   status       String        @default("AVAILABLE") // AVAILABLE, MAINTENANCE
+  category     String        @default("CONFORT")   // BUDGET, CONFORT, LUX
   version      Int           @default(1) // Optimistic locking field
   companyId    Int
   company      Company       @relation(fields: [companyId], references: [id])

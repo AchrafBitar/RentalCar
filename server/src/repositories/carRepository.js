@@ -7,7 +7,10 @@ class CarRepository {
     async findAllAvailable() {
         return await prisma.car.findMany({
             where: { status: 'AVAILABLE' },
-            include: { company: true },
+            include: {
+                company: true,
+                _count: { select: { bookings: true } },
+            },
         });
     }
 
