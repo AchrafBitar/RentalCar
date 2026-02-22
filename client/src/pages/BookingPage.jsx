@@ -478,6 +478,33 @@ const BookingPage = () => {
                 .booking-calendar td, .booking-calendar th {
                     border-color: #e4e4e7 !important;
                 }
+                /* ── Mobile overrides ── */
+                @media (max-width: 640px) {
+                    .booking-calendar .fc-toolbar {
+                        flex-direction: row !important;
+                        gap: 4px;
+                    }
+                    .booking-calendar .fc-toolbar-title {
+                        font-size: 0.85rem !important;
+                    }
+                    .booking-calendar .fc-button {
+                        padding: 4px 8px !important;
+                        font-size: 0.6rem !important;
+                    }
+                    .booking-calendar .fc-daygrid-day {
+                        min-height: 40px;
+                    }
+                    .booking-calendar .fc-col-header-cell {
+                        font-size: 0.65rem;
+                        padding: 4px 0;
+                    }
+                    .booking-calendar .fc-daygrid-day-number {
+                        font-size: 0.75rem;
+                    }
+                }
+                /* Hide scrollbar for tabs */
+                .scrollbar-hide::-webkit-scrollbar { display: none; }
+                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     );

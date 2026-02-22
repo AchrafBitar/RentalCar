@@ -57,9 +57,9 @@ const CarList = () => {
                                 </div>
                             </div>
 
-                            <div className="p-8">
+                            <div className="p-5 md:p-8">
                                 <div className="flex justify-between items-start mb-6">
-                                    <h3 className="text-2xl font-bold text-zinc-900 font-display uppercase tracking-wide">{car.model}</h3>
+                                    <h3 className="text-lg md:text-2xl font-bold text-zinc-900 font-display uppercase tracking-wide">{car.model}</h3>
                                 </div>
 
                                 <div className="flex justify-between items-center text-zinc-500 text-sm mb-8 border-b border-zinc-100 pb-6">
@@ -77,7 +77,7 @@ const CarList = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex justify-between items-center">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                                     <span className={`px-4 py-1.5 text-xs font-bold tracking-wider uppercase border ${car.availability ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-zinc-100 text-zinc-400 border-zinc-200'}`}>
                                         {car.availability ? 'Disponible' : 'Réservé'}
                                     </span>

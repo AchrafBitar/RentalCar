@@ -6,6 +6,8 @@ import BookingPage from './pages/BookingPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import DocumentUpload from './pages/DocumentUpload';
+import AboutUs from './pages/AboutUs';
+import Contact from './pages/Contact';
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/cars" element={<CarList />} />
             <Route path="/book/:carId" element={<BookingPage />} />
             <Route path="/admin/login" element={<AdminLogin />} />

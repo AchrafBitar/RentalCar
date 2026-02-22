@@ -311,24 +311,24 @@ const AdminDashboard = () => {
             <div className="container mx-auto px-4 lg:px-6 py-8">
 
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-6 md:mb-8">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-red-600 flex items-center justify-center">
+                        <div className="w-10 h-10 bg-red-600 flex items-center justify-center flex-shrink-0">
                             <Calendar size={20} className="text-white" />
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 font-display uppercase tracking-tight">
-                            Tableau de Bord Admin
+                        <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-zinc-900 font-display uppercase tracking-tight">
+                            Tableau de Bord
                         </h1>
                     </div>
-                    <div className="flex items-center justify-between">
-                        <p className="text-zinc-500 font-light ml-13">
-                            Gérez votre flotte et vos réservations en temps réel.
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <p className="text-zinc-500 font-light text-sm md:text-base ml-0 md:ml-13">
+                            Gérez votre flotte et vos réservations.
                         </p>
                         <button
                             onClick={logout}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase tracking-wider text-zinc-500 hover:text-red-600 hover:bg-red-50 transition-all border border-zinc-200"
+                            className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-bold uppercase tracking-wider text-zinc-500 hover:text-red-600 hover:bg-red-50 transition-all border border-zinc-200"
                         >
-                            <LogOut size={16} /> Déconnexion
+                            <LogOut size={14} /> Déconnexion
                         </button>
                     </div>
                 </div>
@@ -341,21 +341,21 @@ const AdminDashboard = () => {
                 )}
 
                 {/* Tabs */}
-                <div className="flex border-b border-zinc-200 mb-6 bg-zinc-50">
+                <div className="flex border-b border-zinc-200 mb-4 md:mb-6 bg-zinc-50 overflow-x-auto scrollbar-hide">
                     <button className={tabClass('calendar')} onClick={() => setActiveTab('calendar')}>
-                        <Calendar size={16} /> Calendrier
+                        <Calendar size={16} /> <span className="hidden sm:inline">Calendrier</span><span className="sm:hidden">Cal.</span>
                     </button>
                     <button className={tabClass('cars')} onClick={() => setActiveTab('cars')}>
-                        <Car size={16} /> Véhicules
+                        <Car size={16} /> <span className="hidden sm:inline">Véhicules</span><span className="sm:hidden">Véh.</span>
                     </button>
                     <button className={tabClass('bookings')} onClick={() => setActiveTab('bookings')}>
-                        <ClipboardList size={16} /> Réservations
+                        <ClipboardList size={16} /> <span className="hidden sm:inline">Réservations</span><span className="sm:hidden">Rés.</span>
                     </button>
                     <button
                         onClick={fetchAll}
-                        className="ml-auto flex items-center gap-2 px-4 text-sm text-zinc-400 hover:text-red-600 transition-colors"
+                        className="ml-auto flex items-center gap-1 md:gap-2 px-2 md:px-4 text-xs md:text-sm text-zinc-400 hover:text-red-600 transition-colors flex-shrink-0"
                     >
-                        <RefreshCw size={14} /> Rafraîchir
+                        <RefreshCw size={14} /> <span className="hidden sm:inline">Rafraîchir</span>
                     </button>
                 </div>
 
@@ -394,9 +394,9 @@ const AdminDashboard = () => {
                                     events={events}
                                     locale="fr"
                                     headerToolbar={{
-                                        left: 'prev,next today',
+                                        left: 'prev,next',
                                         center: 'title',
-                                        right: 'dayGridMonth,dayGridWeek',
+                                        right: window.innerWidth < 640 ? '' : 'dayGridMonth,dayGridWeek',
                                     }}
                                     height="auto"
                                     eventDisplay="block"

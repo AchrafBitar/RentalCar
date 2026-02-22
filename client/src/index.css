@@ -21,5 +21,27 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Better touch targets on mobile */
+@media (max-width: 640px) {
+
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
+    /* Prevents iOS zoom on focus */
+  }
 }
