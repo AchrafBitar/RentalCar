@@ -51,6 +51,7 @@ model Booking {
   status        String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED
   customerName  String   @default("")
   customerPhone String   @default("")
+  customerEmail String   @default("")
   carId         Int
   car           Car      @relation(fields: [carId], references: [id])
   createdAt     DateTime @default(now())

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, User, Phone, ArrowLeft, AlertTriangle, Car, MapPin } from 'lucide-react';
+import { Calendar, User, Phone, ArrowLeft, AlertTriangle, Car, MapPin, Upload, FileText, CheckCircle, Mail } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -20,10 +20,17 @@ const BookingPage = () => {
         endDate: '',
         customerName: '',
         customerPhone: '',
+        customerEmail: '',
+    });
+    const [files, setFiles] = useState({
+        permis: null,
+        cin: null,
     });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [selectionStart, setSelectionStart] = useState(null);
+    const [bookingSuccess, setBookingSuccess] = useState(false);
 
     // Fetch car details + availability
     useEffect(() => {
@@ -161,20 +168,30 @@ const BookingPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!files.permis || !files.cin) {
+            setError('Veuillez joindre votre permis de conduire et votre CIN.');
+            return;
+        }
+
         setSubmitting(true);
         setError(null);
 
         try {
+            const submitData = new FormData();
+            submitData.append('carId', carId);
+            submitData.append('startDate', formData.startDate);
+            submitData.append('endDate', formData.endDate);
+            submitData.append('customerName', formData.customerName);
+            submitData.append('customerPhone', formData.customerPhone);
+            submitData.append('customerEmail', formData.customerEmail);
+            submitData.append('permis', files.permis);
+            submitData.append('cin', files.cin);
+
             const res = await fetch(`${API_BASE}/bookings`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    carId: parseInt(carId),
-                    startDate: formData.startDate,
-                    endDate: formData.endDate,
-                    customerName: formData.customerName,
-                    customerPhone: formData.customerPhone,
-                }),
+                // Note: when using FormData, do not set Content-Type header.
+                // The browser will automatically set it to multipart/form-data with the correct boundary.
+                body: submitData,
             });
 
             const json = await res.json();
@@ -184,8 +201,7 @@ const BookingPage = () => {
                 return;
             }
 
-            alert('Demande de réservation envoyée avec succès !');
-            navigate('/cars');
+            setBookingSuccess(true);
         } catch (err) {
             setError('Erreur réseau. Veuillez vérifier votre connexion et réessayer.');
         } finally {
@@ -198,6 +214,52 @@ const BookingPage = () => {
             <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600"></div>
         </div>
     );
+
+    if (bookingSuccess) {
+        return (
+            <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center p-6">
+                <div className="bg-white border border-zinc-200 shadow-xl max-w-2xl w-full p-10 text-center relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
+                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle className="text-emerald-500" size={40} />
+                    </div>
+                    <h1 className="text-3xl font-display font-bold text-zinc-900 uppercase tracking-tight mb-2">Réservation Envoyée</h1>
+                    <p className="text-zinc-600 mb-8 max-w-md mx-auto">
+                        Votre demande pour la <strong className="text-zinc-900">{carData.model}</strong> a bien été enregistrée. Vous recevrez un e-mail de confirmation très prochainement à <strong className="text-zinc-900">{formData.customerEmail}</strong>.
+                    </p>
+
+                    <div className="bg-zinc-50 border border-zinc-100 p-6 text-left mb-8">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-4 border-b border-zinc-200 pb-2">Récapitulatif</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span className="block text-zinc-400 text-xs mb-1">Date de début</span>
+                                <strong className="text-zinc-800">{formData.startDate}</strong>
+                            </div>
+                            <div>
+                                <span className="block text-zinc-400 text-xs mb-1">Date de fin</span>
+                                <strong className="text-zinc-800">{formData.endDate}</strong>
+                            </div>
+                            <div>
+                                <span className="block text-zinc-400 text-xs mb-1">Nom Complet</span>
+                                <strong className="text-zinc-800">{formData.customerName}</strong>
+                            </div>
+                            <div>
+                                <span className="block text-zinc-400 text-xs mb-1">Téléphone</span>
+                                <strong className="text-zinc-800">{formData.customerPhone}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => navigate('/cars')}
+                        className="inline-flex items-center gap-2 bg-zinc-950 text-white font-bold py-4 px-8 uppercase tracking-wider text-sm shadow-xl hover:bg-red-600 hover:shadow-red-600/30 transition-all duration-300 transform skew-x-[-10deg]"
+                    >
+                        <span className="skew-x-[10deg]">Retourner aux véhicules</span>
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-zinc-50 py-24">
@@ -363,12 +425,89 @@ const BookingPage = () => {
                                     </div>
                                 </div>
 
+                                <div>
+                                    <label className="block text-zinc-700 text-xs font-bold mb-1.5 uppercase tracking-wider">Adresse Email</label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-3 text-zinc-400" size={16} />
+                                        <input
+                                            type="email"
+                                            placeholder="votre@email.com"
+                                            required
+                                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border-zinc-200 border-b-2 focus:border-red-600 focus:bg-white transition-all outline-none text-zinc-800 rounded-none placeholder-zinc-400 text-sm"
+                                            value={formData.customerEmail}
+                                            onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Upload Zones */}
+                                <div className="space-y-4 pt-2 border-t border-zinc-100">
+                                    {/* Permis de Conduire */}
+                                    <div>
+                                        <label className="block text-zinc-700 text-xs font-bold mb-1.5 uppercase tracking-wider">Permis de Conduire (Obligatoire)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept=".jpg,.jpeg,.png,.pdf"
+                                                id="permisFile"
+                                                className="hidden"
+                                                onChange={(e) => setFiles({ ...files, permis: e.target.files[0] })}
+                                            />
+                                            <label
+                                                htmlFor="permisFile"
+                                                className={`flex items-center justify-between w-full px-4 py-3 border-2 border-dashed cursor-pointer transition-all ${files.permis ? 'border-emerald-500 bg-emerald-50' : 'border-zinc-300 bg-zinc-50 hover:border-red-500 hover:bg-red-50'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <FileText className={files.permis ? 'text-emerald-500' : 'text-zinc-400'} size={20} />
+                                                    <span className={`text-sm ${files.permis ? 'text-emerald-700 font-medium' : 'text-zinc-500'}`}>
+                                                        {files.permis ? files.permis.name : 'Sélectionner un fichier (Max 5Mo)'}
+                                                    </span>
+                                                </div>
+                                                {files.permis ? <CheckCircle className="text-emerald-500" size={18} /> : <Upload className="text-zinc-400" size={18} />}
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* CIN */}
+                                    <div>
+                                        <label className="block text-zinc-700 text-xs font-bold mb-1.5 uppercase tracking-wider">Carte d'Identité Nationale (Obligatoire)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept=".jpg,.jpeg,.png,.pdf"
+                                                id="cinFile"
+                                                className="hidden"
+                                                onChange={(e) => setFiles({ ...files, cin: e.target.files[0] })}
+                                            />
+                                            <label
+                                                htmlFor="cinFile"
+                                                className={`flex items-center justify-between w-full px-4 py-3 border-2 border-dashed cursor-pointer transition-all ${files.cin ? 'border-emerald-500 bg-emerald-50' : 'border-zinc-300 bg-zinc-50 hover:border-red-500 hover:bg-red-50'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <FileText className={files.cin ? 'text-emerald-500' : 'text-zinc-400'} size={20} />
+                                                    <span className={`text-sm ${files.cin ? 'text-emerald-700 font-medium' : 'text-zinc-500'}`}>
+                                                        {files.cin ? files.cin.name : 'Sélectionner un fichier (Max 5Mo)'}
+                                                    </span>
+                                                </div>
+                                                {files.cin ? <CheckCircle className="text-emerald-500" size={18} /> : <Upload className="text-zinc-400" size={18} />}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <button
                                     type="submit"
-                                    disabled={submitting || !formData.startDate || !formData.endDate}
-                                    className={`w-full bg-zinc-950 text-white font-bold py-3.5 shadow-lg hover:bg-red-600 hover:shadow-red-600/30 transition-all duration-300 transform rounded-none skew-x-[-5deg] ${submitting || !formData.startDate || !formData.endDate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={submitting || !formData.startDate || !formData.endDate || !files.permis || !files.cin}
+                                    className={`w-full bg-zinc-950 text-white font-bold py-3.5 shadow-lg hover:bg-red-600 hover:shadow-red-600/30 transition-all duration-300 transform rounded-none skew-x-[-5deg] ${submitting || !formData.startDate || !formData.endDate || !files.permis || !files.cin ? 'opacity-50 cursor-not-allowed hover:bg-zinc-950 hover:shadow-none' : ''} flex items-center justify-center`}
                                 >
-                                    <span className="skew-x-[5deg] text-sm">{submitting ? 'Traitement...' : 'Confirmer la Réservation'}</span>
+                                    {submitting ? (
+                                        <div className="flex items-center gap-2 skew-x-[5deg]">
+                                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                            <span className="text-sm">Envoi des documents...</span>
+                                        </div>
+                                    ) : (
+                                        <span className="skew-x-[5deg] text-sm">Confirmer la Réservation</span>
+                                    )}
                                 </button>
                             </form>
                         </div>

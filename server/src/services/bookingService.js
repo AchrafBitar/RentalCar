@@ -1,14 +1,14 @@
 const bookingRepository = require('../repositories/bookingRepository');
 const carRepository = require('../repositories/carRepository');
-const notificationService = require('./notificationService');
 
 class BookingService {
     /**
      * Create a new booking with full concurrency protection.
      * Uses an atomic Prisma transaction with optimistic locking.
      * @param {object} data - { carId, startDate, endDate, customerName, customerPhone }
+     * @param {object} files - { permis, cin }
      */
-    async createBooking(data) {
+    async createBooking(data, files) {
         // --- Input Validation ---
         if (!data.carId || !data.startDate || !data.endDate) {
             throw new Error('VALIDATION_ERROR: carId, startDate, and endDate are required.');
@@ -30,9 +30,9 @@ class BookingService {
         }
 
         // --- Transactional Booking (prevents double-booking) ---
+        let booking;
         try {
-            const booking = await bookingRepository.createWithTransaction(data);
-            return booking;
+            booking = await bookingRepository.createWithTransaction(data);
         } catch (error) {
             // Re-throw known business errors as-is
             if (['CAR_NOT_FOUND', 'CAR_UNAVAILABLE', 'DATE_CONFLICT', 'VERSION_CONFLICT'].includes(error.message)) {
@@ -43,6 +43,46 @@ class BookingService {
                 throw new Error('VERSION_CONFLICT');
             }
             throw new Error(`BOOKING_FAILED: ${error.message}`);
+        }
+
+        // --- Save Files ---
+        try {
+            if (files && files.permis && files.cin) {
+                const fs = require('fs').promises;
+                const path = require('path');
+                const bookingDir = path.join(__dirname, '../../uploads/bookings', booking.id.toString());
+
+                // Create directory if it doesn't exist
+                await fs.mkdir(bookingDir, { recursive: true });
+
+                const permisExt = path.extname(files.permis.originalname) || '.jpg';
+                const cinExt = path.extname(files.cin.originalname) || '.jpg';
+
+                const permisPath = path.join(bookingDir, `permis${permisExt}`);
+                const cinPath = path.join(bookingDir, `cin${cinExt}`);
+
+                // Write files from memory to disk
+                await fs.writeFile(permisPath, files.permis.buffer);
+                await fs.writeFile(cinPath, files.cin.buffer);
+            }
+
+            // --- Send Confirmation Email ---
+            const emailService = require('./emailService');
+            await emailService.sendBookingConfirmationEmail(booking);
+
+            return booking;
+        } catch (postError) {
+            console.error('[BookingService] Error after booking creation (files/email):', postError);
+            // Manual rollback: IF file upload or email fails, delete the booking to maintain integrity
+            if (booking && booking.id) {
+                try {
+                    await bookingRepository.delete(booking.id);
+                    console.info(`[BookingService] Successfully rolled back booking ${booking.id}`);
+                } catch (rollbackError) {
+                    console.error('[BookingService] FATAL ERROR: Rollback failed for booking', booking.id, rollbackError);
+                }
+            }
+            throw new Error('UPLOAD_FAILED: Erreur lors du traitement de votre demande. Veuillez réessayer.');
         }
     }
 
@@ -63,13 +103,8 @@ class BookingService {
 
         const confirmedBooking = await bookingRepository.updateStatus(bookingId, 'CONFIRMED');
 
-        // Post-confirmation: send WhatsApp notification with document upload link
-        try {
-            await notificationService.sendBookingConfirmation(confirmedBooking);
-        } catch (notifError) {
-            // Don't fail the confirmation if notification fails
-            console.error('[BookingService] Notification failed (non-blocking):', notifError.message);
-        }
+        // Post-confirmation: WhatsApp notification removed in favor of direct client communication.
+        // The administrator and client are notified via email (handled in confirmBooking/createBooking).
 
         return confirmedBooking;
     }

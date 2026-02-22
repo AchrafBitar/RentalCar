@@ -63,7 +63,7 @@ const Home = () => {
                                 </span>
                             </Link>
                             <a
-                                href="https://wa.me/212600000000"
+                                href="https://wa.me/212663555666"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="bg-white/5 hover:bg-white/10 text-white font-semibold py-4 px-8 rounded-none skew-x-[-10deg] border border-white/20 backdrop-blur-sm transition-all duration-300 flex items-center justify-center"
@@ -231,7 +231,7 @@ const Home = () => {
                             </span>
                         </Link>
                         <a
-                            href="tel:+212600000000"
+                            href="tel:+212663555666"
                             className="bg-white/10 hover:bg-white/20 text-white font-semibold py-4 px-8 skew-x-[-10deg] border border-white/30 backdrop-blur-sm transition-all duration-300 flex items-center justify-center"
                         >
                             <span className="skew-x-[10deg] flex items-center gap-2">

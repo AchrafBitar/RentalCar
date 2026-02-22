@@ -160,7 +160,7 @@ const AboutUs = () => {
                             Réserver en Ligne — 10% Offerts
                         </Link>
                         <a
-                            href="https://wa.me/212600000000"
+                            href="https://wa.me/212663555666"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center gap-2 border border-zinc-300 hover:border-red-400 text-zinc-700 hover:text-red-600 font-semibold py-3 px-6 transition-colors text-sm"

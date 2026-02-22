@@ -5,7 +5,6 @@ import CarList from './pages/CarList';
 import BookingPage from './pages/BookingPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
-import DocumentUpload from './pages/DocumentUpload';
 import AboutUs from './pages/AboutUs';
 import Contact from './pages/Contact';
 
@@ -23,7 +22,6 @@ function App() {
             <Route path="/book/:carId" element={<BookingPage />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/upload-docs/:reservationId" element={<DocumentUpload />} />
           </Routes>
         </main>
         <footer className="bg-zinc-950 text-white py-6 text-center border-t border-zinc-900">

@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const bookingController = require('../controllers/bookingController');
+const uploadMiddleware = require('../middlewares/uploadMiddleware');
 
 // POST /api/bookings — Create a new booking (with anti-double-booking protection)
-router.post('/', (req, res) => bookingController.createBooking(req, res));
+router.post('/', uploadMiddleware, (req, res) => bookingController.createBooking(req, res));
 
 // PATCH /api/bookings/:id/confirm — Confirm a pending booking
 router.patch('/:id/confirm', (req, res) => bookingController.confirmBooking(req, res));

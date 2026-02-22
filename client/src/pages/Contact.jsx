@@ -42,12 +42,12 @@ const Contact = () => {
                     <ContactItem
                         icon={<Phone className="text-red-600 flex-shrink-0" size={18} />}
                         label="Téléphone"
-                        value={<a href="tel:+212600000000" className="text-red-600 hover:text-red-700 transition-colors">+212 6 00 00 00 00</a>}
+                        value={<a href="tel:+212663555666" className="text-red-600 hover:text-red-700 transition-colors">+212 6 63 55 56 66</a>}
                     />
                     <ContactItem
                         icon={<MessageCircle className="text-red-600 flex-shrink-0" size={18} />}
                         label="WhatsApp"
-                        value={<a href="https://wa.me/212600000000" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700 transition-colors">Envoyez-nous un message</a>}
+                        value={<a href="https://wa.me/212663555666" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700 transition-colors">Envoyez-nous un message</a>}
                     />
                     <ContactItem
                         icon={<Mail className="text-red-600 flex-shrink-0" size={18} />}
@@ -111,7 +111,7 @@ const Contact = () => {
                         Envoyez-nous un message et recevez une réponse en quelques minutes.
                     </p>
                     <a
-                        href="https://wa.me/212600000000"
+                        href="https://wa.me/212663555666"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 transition-colors text-sm"

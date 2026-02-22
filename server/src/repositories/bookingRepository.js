@@ -92,6 +92,7 @@ class BookingRepository {
                 status: data.status || 'PENDING',
                 customerName: data.customerName || '',
                 customerPhone: data.customerPhone || '',
+                customerEmail: data.customerEmail || '',
                 carId: parseInt(data.carId),
             });
 

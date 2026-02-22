@@ -10,7 +10,27 @@ class BookingController {
      */
     async createBooking(req, res) {
         try {
-            const booking = await bookingService.createBooking(req.body);
+            // Because of multipart/form-data, payload fields come as strings
+            const data = {
+                ...req.body,
+                carId: parseInt(req.body.carId, 10),
+            };
+
+            // Ensure files are present
+            if (!req.files || !req.files['permis'] || !req.files['cin']) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'MISSING_DOCUMENTS',
+                    message: 'Le permis de conduire et la CIN sont obligatoires.'
+                });
+            }
+
+            const files = {
+                permis: req.files['permis'][0],
+                cin: req.files['cin'][0]
+            };
+
+            const booking = await bookingService.createBooking(data, files);
             res.status(201).json({
                 success: true,
                 data: booking,
