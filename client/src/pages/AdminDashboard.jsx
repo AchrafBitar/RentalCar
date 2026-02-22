@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import {
     Car, Wrench, CheckCircle, XCircle, RefreshCw, AlertTriangle,
-    Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban, LogOut
+    Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban, LogOut, Upload, Image
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -83,6 +83,8 @@ const AdminDashboard = () => {
     // Car modal state
     const [carModal, setCarModal] = useState({ open: false, mode: 'add', car: null });
     const [carForm, setCarForm] = useState({ model: '', image: '', pricePerDay: '', companyId: '1', category: 'CONFORT' });
+    const [imageUploading, setImageUploading] = useState(false);
+    const [dragOver, setDragOver] = useState(false);
     const [carSaving, setCarSaving] = useState(false);
 
     // Booking modal state
@@ -158,6 +160,29 @@ const AdminDashboard = () => {
             await fetchAll();
         } catch { alert('Erreur réseau.'); }
         finally { setCarSaving(false); }
+    };
+
+    // ─── Car Image Upload Handler ──────────────────────────────────────
+    const uploadCarImage = async (file) => {
+        if (!file || !file.type.startsWith('image/')) { alert('Veuillez sélectionner une image (JPG, PNG, WebP).'); return; }
+        if (file.size > 5 * 1024 * 1024) { alert('Image trop lourde (max 5 MB).'); return; }
+        setImageUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+            const res = await fetch(`${API_BASE}/admin/upload-car-image`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${getToken()}` },
+                body: formData,
+            });
+            if (res.status === 401) { handleUnauthorized(); return; }
+            const json = await res.json();
+            if (json.success) {
+                const baseUrl = API_BASE.replace('/api', '');
+                setCarForm(prev => ({ ...prev, image: `${baseUrl}${json.imageUrl}` }));
+            } else { alert(json.message || 'Erreur upload.'); }
+        } catch { alert('Erreur réseau lors de l\'upload.'); }
+        finally { setImageUploading(false); }
     };
 
     const deleteCar = async (id) => {
@@ -596,6 +621,7 @@ const AdminDashboard = () => {
                                         <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Téléphone</th>
                                         <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Du</th>
                                         <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Au</th>
+                                        <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Total</th>
                                         <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Statut</th>
                                         <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Actions</th>
                                     </tr>
@@ -609,6 +635,13 @@ const AdminDashboard = () => {
                                             <td className="px-4 py-3 text-sm text-zinc-500">{b.customerPhone || '—'}</td>
                                             <td className="px-4 py-3 text-sm text-zinc-600">{new Date(b.startDate).toLocaleDateString('fr-FR')}</td>
                                             <td className="px-4 py-3 text-sm text-zinc-600">{new Date(b.endDate).toLocaleDateString('fr-FR')}</td>
+                                            <td className="px-4 py-3 text-sm font-bold text-zinc-900 text-right">
+                                                {(() => {
+                                                    const days = Math.max(1, Math.ceil((new Date(b.endDate) - new Date(b.startDate)) / (1000 * 60 * 60 * 24)));
+                                                    const price = b.car?.pricePerDay || 0;
+                                                    return `${(days * price).toLocaleString('fr-FR')} MAD`;
+                                                })()}
+                                            </td>
                                             <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center justify-end gap-1">
@@ -642,7 +675,7 @@ const AdminDashboard = () => {
                                         </tr>
                                     ))}
                                     {filteredBookings.length === 0 && (
-                                        <tr><td colSpan="8" className="px-4 py-8 text-center text-zinc-400 text-sm">Aucune réservation trouvée.</td></tr>
+                                        <tr><td colSpan="9" className="px-4 py-8 text-center text-zinc-400 text-sm">Aucune réservation trouvée.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -674,14 +707,38 @@ const AdminDashboard = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Image URL</label>
-                        <input
-                            type="text"
-                            value={carForm.image}
-                            onChange={e => setCarForm({ ...carForm, image: e.target.value })}
-                            className="w-full px-3 py-2 border border-zinc-200 text-sm focus:outline-none focus:border-red-500 transition-colors"
-                            placeholder="https://..."
-                        />
+                        <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Image du véhicule</label>
+                        {carForm.image ? (
+                            <div className="relative group">
+                                <img src={carForm.image} alt="Aperçu" className="w-full h-40 object-cover border border-zinc-200" />
+                                <button
+                                    type="button"
+                                    onClick={() => setCarForm({ ...carForm, image: '' })}
+                                    className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        ) : (
+                            <div
+                                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                                onDragLeave={() => setDragOver(false)}
+                                onDrop={(e) => { e.preventDefault(); setDragOver(false); uploadCarImage(e.dataTransfer.files[0]); }}
+                                onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = (e) => uploadCarImage(e.target.files[0]); inp.click(); }}
+                                className={`w-full h-40 border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${dragOver ? 'border-red-500 bg-red-50' : 'border-zinc-300 hover:border-zinc-400 bg-zinc-50'
+                                    }`}
+                            >
+                                {imageUploading ? (
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-600"></div>
+                                ) : (
+                                    <>
+                                        <Upload size={24} className="text-zinc-400 mb-2" />
+                                        <span className="text-xs text-zinc-500 font-medium">Glisser-déposer ou cliquer</span>
+                                        <span className="text-[10px] text-zinc-400 mt-1">JPG, PNG, WebP — max 5 MB</span>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>

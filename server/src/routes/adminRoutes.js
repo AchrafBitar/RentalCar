@@ -12,6 +12,35 @@ router.put('/cars/:id', (req, res) => adminController.updateCar(req, res));
 router.delete('/cars/:id', (req, res) => adminController.deleteCar(req, res));
 router.put('/cars/:id/maintenance', (req, res) => adminController.toggleMaintenance(req, res));
 
+// ─── Car Image Upload ──────────────────────────────────────────────────
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const carImageStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../../uploads/cars');
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `car_${Date.now()}${ext}`);
+    },
+});
+const carImageUpload = multer({
+    storage: carImageStorage,
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+        cb(null, allowed.includes(file.mimetype));
+    },
+    limits: { fileSize: 5 * 1024 * 1024 },
+});
+router.post('/upload-car-image', carImageUpload.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No image uploaded.' });
+    const imageUrl = `/uploads/cars/${req.file.filename}`;
+    res.json({ success: true, imageUrl });
+});
+
 // ─── Bookings CRUD ───────────────────────────────────────────────────
 router.get('/bookings', (req, res) => adminController.getAllBookings(req, res));
 router.post('/bookings', (req, res) => adminController.createBooking(req, res));
