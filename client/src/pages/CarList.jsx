@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Fuel, Settings, Users, ArrowRight, Trophy, Crown, Sparkles, Wallet, Star } from 'lucide-react';
 import api from '../services/api';
+import { getImageUrl } from '../utils/imageUtils';
 
 const CATEGORIES = [
     { key: 'ALL', label: 'Tous', icon: <Star size={16} /> },
@@ -151,7 +152,7 @@ const BestSellerCard = ({ car, rank }) => (
         </div>
 
         <div className="h-56 sm:h-64 overflow-hidden relative">
-            <img src={car.image || "https://via.placeholder.com/400x250"} alt={car.model} className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700" />
+            <img src={getImageUrl(car.image) || "https://via.placeholder.com/400x250"} alt={car.model} className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
         </div>
 
@@ -194,7 +195,7 @@ const CarCard = ({ car }) => (
         <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left z-10"></div>
 
         <div className="h-56 sm:h-64 overflow-hidden relative">
-            <img src={car.image || "https://via.placeholder.com/400x250"} alt={car.model} className="w-full h-full object-cover transform group-hover:scale-110 transition duration-700" />
+            <img src={getImageUrl(car.image) || "https://via.placeholder.com/400x250"} alt={car.model} className="w-full h-full object-cover transform group-hover:scale-110 transition duration-700" />
             <div className="absolute top-4 right-4 bg-brand-secondary/90 backdrop-blur-md px-4 py-1 skew-x-[-10deg] text-white font-bold shadow-lg border border-white/10">
                 <span className="skew-x-[10deg] block">{car.pricePerDay} MAD<span className="text-xs font-normal text-zinc-300">/jour</span></span>
             </div>

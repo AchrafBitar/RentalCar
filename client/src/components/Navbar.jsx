@@ -3,6 +3,7 @@ import Logo from '../assets/Logo.png';
 import { useEffect, useState } from 'react';
 import { Shield, Menu, X } from 'lucide-react';
 import { useTenant } from '../context/TenantContext';
+import { getImageUrl } from '../utils/imageUtils';
 
 const Navbar = () => {
     const tenant = useTenant();
@@ -42,7 +43,7 @@ const Navbar = () => {
                 <div className="container mx-auto px-4 md:px-6 flex justify-between items-center">
                     <Link to="/" className="flex items-center group">
                         <img
-                            src={tenant?.logoUrl || Logo}
+                            src={getImageUrl(tenant?.logoUrl) || Logo}
                             alt={tenant?.company?.name || "Exact Rent Car"}
                             className="h-10 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                         />

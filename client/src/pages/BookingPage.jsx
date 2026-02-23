@@ -5,6 +5,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import api from '../services/api';
+import { getImageUrl } from '../utils/imageUtils';
 
 const BookingPage = () => {
     const { carId } = useParams();
@@ -264,7 +265,7 @@ const BookingPage = () => {
                         <div className="flex flex-col md:flex-row">
                             <div className="md:w-1/3 h-48 md:h-auto overflow-hidden">
                                 <img
-                                    src={carData.image || 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2070&auto=format&fit=crop'}
+                                    src={getImageUrl(carData.image) || 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2070&auto=format&fit=crop'}
                                     alt={carData.model}
                                     className="w-full h-full object-cover"
                                 />

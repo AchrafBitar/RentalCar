@@ -8,6 +8,7 @@ import {
     Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban, LogOut, Upload, Image, FileText
 } from 'lucide-react';
 import api from '../services/api';
+import { getImageUrl } from '../utils/imageUtils';
 
 // ────────────────────────────────────────────────────────────
 // Reusable Modal Shell
@@ -725,7 +726,7 @@ const AdminDashboard = () => {
                         <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">Image du véhicule</label>
                         {carForm.image ? (
                             <div className="relative group">
-                                <img src={carForm.image} alt="Aperçu" className="w-full h-40 object-cover border border-zinc-200" />
+                                <img src={getImageUrl(carForm.image)} alt="Aperçu" className="w-full h-40 object-cover border border-zinc-200" />
                                 <button
                                     type="button"
                                     onClick={() => setCarForm({ ...carForm, image: '' })}

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import FloatingMap from '../components/FloatingMap';
 import { useTenant } from '../context/TenantContext';
+import { getImageUrl } from '../utils/imageUtils';
 
 const Home = () => {
     const tenant = useTenant();
@@ -94,7 +95,7 @@ const Home = () => {
 
                 <div className="container mx-auto px-6 flex flex-col items-center text-center">
                     <img
-                        src={tenant?.logoUrl || Logo}
+                        src={getImageUrl(tenant?.logoUrl) || Logo}
                         alt={tenant?.company?.name || "Exact Rent Car"}
                         className="h-28 md:h-36 w-auto object-contain mb-8 drop-shadow-[0_0_40px_rgba(220,38,38,0.15)]"
                     />
