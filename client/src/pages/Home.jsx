@@ -191,8 +191,8 @@ const Home = () => {
                     <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 font-display">
                         Prêt à Prendre la Route ?
                     </h2>
-                    <p className="text-brand-primary text-lg font-light mb-8 max-w-lg mx-auto">
-                        Réservez en ligne et bénéficiez de <strong className="text-white">10% de réduction</strong> sur votre première location.
+                    <p className="text-white text-lg font-light mb-8 max-w-lg mx-auto">
+                        Réservez en ligne et bénéficiez de <strong className="text-brand-primary">10% de réduction</strong> sur votre première location.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link
