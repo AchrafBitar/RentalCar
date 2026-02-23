@@ -84,34 +84,7 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════════════════ */}
-            {/* LOGO SHOWCASE — Brand Identity Strip                       */}
-            {/* ═══════════════════════════════════════════════════════════ */}
-            <section className="py-20 bg-brand-secondary relative overflow-hidden">
-                {/* Subtle decorative accents */}
-                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-primary to-transparent"></div>
-                <div className="absolute -left-32 top-1/2 -translate-y-1/2 w-64 h-64 bg-brand-primary rounded-full blur-3xl"></div>
-                <div className="absolute -right-32 top-1/2 -translate-y-1/2 w-64 h-64 bg-brand-primary rounded-full blur-3xl"></div>
 
-                <div className="container mx-auto px-6 flex flex-col items-center text-center">
-                    <img
-                        src={getImageUrl(tenant?.logoUrl) || Logo}
-                        alt={tenant?.company?.name || "Exact Rent Car"}
-                        className="h-28 md:h-36 w-auto object-contain mb-8 drop-shadow-[0_0_40px_rgba(220,38,38,0.15)]"
-                    />
-                    <p className="text-zinc-400 text-lg md:text-xl font-light max-w-lg leading-relaxed">
-                        Votre partenaire de confiance pour la <strong className="text-white">location de voiture à {tenant?.address ? tenant.address.split(',')[0] : 'Rabat'}</strong> depuis plus de 20 ans.
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-8 text-zinc-500 text-xs sm:text-sm">
-                        <span className="flex items-center gap-1.5"><MapPin size={14} className="text-brand-primary" />{tenant?.address || 'Agdal, Rabat'}</span>
-                        <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
-                        <span className="flex items-center gap-1.5"><Clock size={14} className="text-brand-primary" />Depuis 2001</span>
-                        <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
-                        <span className="flex items-center gap-1.5"><Star size={14} className="text-brand-primary" />Service Premium</span>
-                    </div>
-                </div>
-                <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-primary to-transparent"></div>
-            </section>
 
             {/* ═══════════════════════════════════════════════════════════ */}
             {/* WHY CHOOSE US — Feature Cards                              */}
@@ -267,8 +240,8 @@ const FeatureCard = ({ icon, title, description }) => (
 const StepCard = ({ number, title, description, icon }) => (
     <div className="text-center group">
         <div className="w-16 h-16 mx-auto mb-6 relative">
-            <div className="absolute inset-0 bg-brand-primary group-hover:bg-brand-primary transition-colors duration-300 skew-x-[-6deg]"></div>
-            <div className="relative w-full h-full flex items-center justify-center text-brand-primary">
+            <div className="absolute inset-0 bg-brand-primary group-hover:bg-red-700 transition-colors duration-300 skew-x-[-6deg]"></div>
+            <div className="relative w-full h-full flex items-center justify-center text-white">
                 {icon}
             </div>
         </div>
@@ -280,7 +253,7 @@ const StepCard = ({ number, title, description, icon }) => (
 
 const ServiceCard = ({ icon, label, sub }) => (
     <div className="p-6 border border-zinc-200 hover:border-brand-primary bg-zinc-50 hover:bg-red-50/30 transition-all duration-300 group text-center">
-        <div className="w-10 h-10 bg-brand-primary mx-auto flex items-center justify-center mb-4 text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all duration-300">
+        <div className="w-10 h-10 bg-zinc-100 mx-auto flex items-center justify-center mb-4 text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all duration-300">
             {icon}
         </div>
         <h3 className="font-bold text-zinc-900 text-sm uppercase tracking-wide mb-1">{label}</h3>
