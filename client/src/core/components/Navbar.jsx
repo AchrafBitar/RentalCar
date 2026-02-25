@@ -1,9 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import Logo from '../assets/Logo.png';
+import Logo from '@tenant/assets/Logo.png';
 import { useEffect, useState } from 'react';
 import { Shield, Menu, X } from 'lucide-react';
-import { useTenant } from '../context/TenantContext';
-import { getImageUrl } from '../utils/imageUtils';
+import { useTenant } from '@core/context/TenantContext';
+import { getImageUrl } from '@core/utils/imageUtils';
 
 const Navbar = () => {
     const tenant = useTenant();

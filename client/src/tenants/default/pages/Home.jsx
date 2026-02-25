@@ -16,9 +16,9 @@ import {
     Users,
     Plane,
 } from 'lucide-react';
-import FloatingMap from '../components/FloatingMap';
-import { useTenant } from '../context/TenantContext';
-import { getImageUrl } from '../utils/imageUtils';
+import FloatingMap from '@core/components/FloatingMap';
+import { useTenant } from '@core/context/TenantContext';
+import { getImageUrl } from '@core/utils/imageUtils';
 
 const Home = () => {
     const tenant = useTenant();

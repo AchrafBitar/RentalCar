@@ -17,6 +17,7 @@ model Company {
   cars         Car[]
   bookings     Booking[]
   blockedDates BlockedDate[]
+  auditLogs    AuditLog[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 }
@@ -78,4 +79,15 @@ model Booking {
   company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  companyId Int
+  adminUser String   // The username of the admin who performed the action
+  action    String   // E.g., 'CREATE_CAR', 'TOGGLE_MAINTENANCE'
+  details   String?  @db.Text // JSON string or plain text describing the change
+  createdAt DateTime @default(now())
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

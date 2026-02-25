@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Fuel, Settings, Users, ArrowRight, Trophy, Crown, Sparkles, Wallet, Star } from 'lucide-react';
-import api from '../services/api';
-import { getImageUrl } from '../utils/imageUtils';
+import api from '@core/services/api';
+import { getImageUrl } from '@core/utils/imageUtils';
 
 const CATEGORIES = [
     { key: 'ALL', label: 'Tous', icon: <Star size={16} /> },

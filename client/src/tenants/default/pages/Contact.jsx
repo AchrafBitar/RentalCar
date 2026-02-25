@@ -8,7 +8,7 @@ import {
     Plane,
     Train,
 } from 'lucide-react';
-import { useTenant } from '../context/TenantContext';
+import { useTenant } from '@core/context/TenantContext';
 
 const Contact = () => {
     const tenant = useTenant();

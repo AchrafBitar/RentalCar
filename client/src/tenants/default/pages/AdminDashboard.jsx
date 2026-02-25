@@ -7,8 +7,8 @@ import {
     Car, Wrench, CheckCircle, XCircle, RefreshCw, AlertTriangle,
     Calendar, Plus, Pencil, Trash2, ClipboardList, X, Search, Ban, LogOut, Upload, Image, FileText
 } from 'lucide-react';
-import api from '../services/api';
-import { getImageUrl } from '../utils/imageUtils';
+import api from '@core/services/api';
+import { getImageUrl } from '@core/utils/imageUtils';
 
 // ────────────────────────────────────────────────────────────
 // Reusable Modal Shell

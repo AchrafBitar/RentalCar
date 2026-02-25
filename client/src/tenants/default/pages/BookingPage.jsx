@@ -4,8 +4,8 @@ import { Calendar, User, Phone, ArrowLeft, AlertTriangle, Car, MapPin, Upload, F
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import api from '../services/api';
-import { getImageUrl } from '../utils/imageUtils';
+import api from '@core/services/api';
+import { getImageUrl } from '@core/utils/imageUtils';
 
 const BookingPage = () => {
     const { carId } = useParams();
